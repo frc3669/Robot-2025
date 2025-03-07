@@ -1,7 +1,7 @@
 import math
 
 run_ave_max_index = 16
-coral_elevator_in_to_rotations = 5/9*2.54
+elevator_in_to_rotations = 5/9*2.54
 coral_angle_gear_ratio = 18
 
 code_cycle_time = 0.02
@@ -21,11 +21,10 @@ braking_current = 15
 max_forward_current = max_input_current - braking_current
 max_reverse_current = max_input_current + braking_current
 
-startingPosition = 0.5 + 4j
 swerve_position_P = 0.04
 swerve_heading_P = 2.5
 
-swerve_autoalign_P = 0.2
+swerve_autoalign_P = 1.2
 
 #release_intake = -0.25
 #L4_height = 72.5

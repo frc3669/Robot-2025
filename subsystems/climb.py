@@ -1,10 +1,10 @@
 import cmath, commands2
-from wpilib import Timer, SmartDashboard, DataLogManager, DigitalInput
+from wpilib import SmartDashboard, DriverStation, interfaces
 from phoenix6 import hardware, controls, configs, StatusCode, signals
 import constants
 
 class Climb(commands2.Subsystem):
-    def __init__(self):
+    def __init__(self, controller: interfaces.GenericHID):
         super().__init__()
         self.climbMotor = hardware.TalonFX(43, "CTREdevices")
         # create configuration 
@@ -18,6 +18,7 @@ class Climb(commands2.Subsystem):
                 break
         if not status.is_ok():
             print(f"Could not apply configs, error code: {status.name}")
+        self.controller = controller
     
     def retract(self):
         self.climbMotor.set_control(controls.DutyCycleOut(1))
@@ -27,3 +28,16 @@ class Climb(commands2.Subsystem):
     
     def brake(self):
         self.climbMotor.set_control(controls.NeutralOut())
+
+    def teleopPeriodic(self):
+        if self.controller.getRawButton(18):
+            self.extend()
+        elif self.controller.getRawButton(19):
+            self.retract()
+        else:
+            self.brake()
+    
+    def periodic(self):
+        super().periodic()
+        if DriverStation.isTeleopEnabled():
+            self.teleopPeriodic()

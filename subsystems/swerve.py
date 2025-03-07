@@ -1,4 +1,4 @@
-import cmath, commands2
+import cmath, commands2, choreo
 from wpilib import Timer, SmartDashboard, Joystick, DriverStation
 from phoenix6 import hardware
 from utils.trajectory import Trajectory
@@ -12,7 +12,8 @@ class Swerve(commands2.Subsystem):
     modules = []
     slew_velocity = complex()
     slew_angular_velocity = 0
-    position = constants.startingPosition
+    position = 0 + 0j
+    startingAngle = 0
     heading = 0
     trajectory = None
     sample_index = 0
@@ -29,14 +30,13 @@ class Swerve(commands2.Subsystem):
         if controller.getName() == "Controller (Xbox One For Windows)":
             velocity = complex(-controller.getRawAxis(1), -controller.getRawAxis(0))
             angular_velocity = -controller.getRawAxis(4)
+            if controller.getRawButton(4):
+                Swerve.gyro.set_yaw(0)
         elif controller.getName() == "Radiomaster Boxer Joystick":
             velocity = complex(controller.getRawAxis(0), controller.getRawAxis(1))
             angular_velocity = controller.getRawAxis(2)
             if controller.getRawButton(4):
                 Swerve.gyro.set_yaw(0)
-        elif controller.getName() == "Keyboard 0":
-            velocity = complex(controller.getRawAxis(0), -controller.getRawAxis(1))
-            angular_velocity = -controller.getRawAxis(2)
         if autoAlignEnabled:
             angular_velocity -= skew * constants.swerve_autoalign_P
 
@@ -54,8 +54,7 @@ class Swerve(commands2.Subsystem):
         velocity *= constants.max_m_per_sec
         angular_velocity *= constants.max_m_per_sec
         # find the robot oriented velocity
-        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360
-        SmartDashboard.putNumber('heading', Swerve.heading)
+        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
         robot_velocity = velocity * cmath.rect(1, -Swerve.heading)
         # find the fastest module speed
         highest = constants.max_m_per_sec
@@ -70,8 +69,6 @@ class Swerve(commands2.Subsystem):
         # find the error between the command and the current velocities
         velocity_error = velocity - Swerve.slew_velocity
         angular_velocity_error = angular_velocity - Swerve.slew_angular_velocity
-        SmartDashboard.putNumber('vel_err_x', velocity_error.real)
-        SmartDashboard.putNumber('vel_err_y', velocity_error.imag)
         # find the robot oriented velocity error
         robot_velocity_error = velocity_error * cmath.rect(1, -Swerve.heading)
         robot_slew_velocity = Swerve.slew_velocity * cmath.rect(1, -Swerve.heading)
@@ -84,8 +81,6 @@ class Swerve(commands2.Subsystem):
         # find velocity increments
         velocity_increment = velocity_error/highest
         angular_velocity_increment = angular_velocity_error/highest
-        SmartDashboard.putNumber('vel_inc_x', velocity_increment.real)
-        SmartDashboard.putNumber('vel_inc_y', velocity_increment.imag)
         # increment velocity
         if abs(velocity_error) > constants.max_m_per_sec_per_cycle:
             Swerve.slew_velocity += velocity_increment
@@ -103,7 +98,6 @@ class Swerve(commands2.Subsystem):
         # drive the modules
         for module in Swerve.modules:
             module.set_velocity(robot_slew_velocity, Swerve.slew_angular_velocity, robot_accel, angular_accel)
-        SmartDashboard.putNumber('timestamp', Timer.getFPGATimestamp())
         Swerve.calculateOdometry()
 
     @staticmethod
@@ -120,40 +114,37 @@ class Swerve(commands2.Subsystem):
         SmartDashboard.putNumber('timestamp', Timer.getFPGATimestamp())
     
     @staticmethod
-    def setTrajectory(trajectory: Trajectory):
+    def setTrajectory(trajectory: choreo.SwerveTrajectory):
         Swerve.trajectory = trajectory
-        Swerve.sample_index = 0
         Swerve.auto_timer.restart()
 
     @staticmethod  
     def moveToNextSample():
-        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360
+        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
         # find the latest sample index
-        while Swerve.auto_timer.hasElapsed(Swerve.trajectory.get_sample(Swerve.sample_index).timestamp) and Swerve.sample_index < Swerve.trajectory.get_sample_count() - 1:
-            Swerve.sample_index += 1
-        if Swerve.sample_index < Swerve.trajectory.get_sample_count():
+        if not Swerve.auto_timer.hasElapsed(Swerve.trajectory.get_total_time()):
             Swerve.calculateOdometry()
-            current_sample = Swerve.trajectory.get_sample(Swerve.sample_index)
+            current_sample = Swerve.trajectory.sample_at(Swerve.auto_timer.get())
             # calculate the proportional response
-            position_error = current_sample.position - Swerve.position
+            position_error = complex(current_sample.x, current_sample.y) - Swerve.position
             heading_error = current_sample.heading - Swerve.heading
             heading_error = mf.get_wrapped(heading_error)
-            velocity = current_sample.velocity + constants.swerve_position_P * position_error
-            angular_velocity = current_sample.angular_velocity + constants.swerve_heading_P * heading_error
+            velocity = complex(current_sample.vx, current_sample.vy) + constants.swerve_position_P * position_error
+            angular_velocity = current_sample.omega + constants.swerve_heading_P * heading_error
             velocity *= cmath.rect(1, -Swerve.heading)
             for module in Swerve.modules:
-                module.set_velocity(velocity, angular_velocity, current_sample.acceleration, current_sample.angular_acceleration)
+                module.set_velocity(velocity, angular_velocity, complex(current_sample.ax, current_sample.ay), current_sample.alpha)
         else:
             for module in Swerve.modules:
                 module.set_velocity()
 
     @staticmethod
-    def followTrajectory(trajectory: Trajectory) -> commands2.Command:
+    def followTrajectory(trajectory: choreo.SwerveTrajectory) -> commands2.Command:
         return commands2.FunctionalCommand (
             lambda: Swerve.setTrajectory(trajectory), 
             lambda: Swerve.moveToNextSample(),
             lambda x : Swerve.doNothing(),
-            lambda: Swerve.sample_index == Swerve.trajectory.get_sample_count() - 1,
+            lambda: Swerve.auto_timer.hasElapsed(trajectory.get_total_time()),
             Swerve)
     
     @staticmethod

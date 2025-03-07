@@ -1,11 +1,11 @@
 import cmath, commands2
-from wpilib import Timer, SmartDashboard, DataLogManager, DigitalInput, DriverStation, Joystick
+from wpilib import Timer, SmartDashboard, DataLogManager, DigitalInput, DriverStation, interfaces
 from phoenix6 import hardware, controls, configs, signals, StatusCode
 import utils.mathFunctions as mf
 import constants
 
 class CoralHandler(commands2.Subsystem):
-    def __init__(self, controller: Joystick):
+    def __init__(self, controller: interfaces.GenericHID, cmd_controller: commands2.button.CommandGenericHID):
         super().__init__()
         self.canr0 = hardware.CANrange(9, "CTREdevices")
         self.canr1 = hardware.CANrange(10, "CTREdevices")
@@ -14,31 +14,38 @@ class CoralHandler(commands2.Subsystem):
         self.scoring_motor = hardware.TalonFXS(61, "CTREdevices")
         self.angle_motor = hardware.TalonFX(51, "CTREdevices")
         self.velocity_ctrl = controls.VelocityTorqueCurrentFOC(0)
+        self.position_torque = controls.PositionTorqueCurrentFOC(0)
         self.position_ctrl = controls.PositionDutyCycle(0)
         self.controller = controller
-        self.feeder_station_button = commands2.button.JoystickButton(self.controller, 9)
-        self.feeder_station_button.onTrue(self.intakeCommand())
-        # self.home_button = commands2.button.JoystickButton(self.controller, 17)
-        # self.feeder_station_button.onTrue(self.homeCommand())
-        self.l1_coral_button = None
-        # create configuration 
+        self.cmd_controller = cmd_controller
+        # set up event triggers
+        self.feederStationTrigger = self.cmd_controller.button(9)
+        self.feederStationTrigger.onTrue(self.intakeCommand())
+        self.homeTrigger = self.cmd_controller.button(17)
+        self.homeTrigger.onTrue(self.homeCommand())
+        self.l1_coral_trigger = self.cmd_controller.button(16)
+        self.l1_coral_trigger.onTrue(self.goL1Command())
+        self.l2_coral_trigger = self.cmd_controller.button(15)
+        self.l2_coral_trigger.onTrue(self.goL2Command())
+        self.l3_coral_trigger = self.cmd_controller.button(14)
+        self.l3_coral_trigger.onTrue(self.goL3Command())
+        self.l4_coral_trigger = self.cmd_controller.button(13)
+        self.l4_coral_trigger.onTrue(self.goL4Command())
+        # angle motor configuration 
         angle_cfg = configs.TalonFXConfiguration()
-        angle_cfg.slot0.k_p = 0.5
-        angle_cfg.voltage.peak_forward_voltage = 1.5
-        angle_cfg.voltage.peak_reverse_voltage = -1.5
-        angle_cfg.current_limits.stator_current_limit_enable = True
-        angle_cfg.current_limits.supply_current_limit = 20
-        angle_cfg.current_limits.supply_current_lower_limit = 10
-        # angle_cfg.torque_current.peak_forward_torque_current
+        angle_cfg.slot0.k_p = 70
+        angle_cfg.slot0.k_d = 5
+        angle_cfg.torque_current.peak_forward_torque_current = 20
+        angle_cfg.torque_current.peak_reverse_torque_current = -40
+        # elevotor motor configs
         elevator_cfg = configs.TalonFXConfiguration()
-        elevator_cfg.slot0.k_p = 0.2
-        elevator_cfg.voltage.peak_forward_voltage = 1.5
-        elevator_cfg.voltage.peak_reverse_voltage = -3
-        elevator_cfg.current_limits.stator_current_limit_enable = True
-        elevator_cfg.current_limits.supply_current_limit = 20
-        elevator_cfg.current_limits.supply_current_lower_limit = 10
+        elevator_cfg.slot0.k_p = 25
+        elevator_cfg.slot0.k_d = 2
+        elevator_cfg.slot0.k_g = -15
+        elevator_cfg.torque_current.peak_forward_torque_current = 15
+        elevator_cfg.torque_current.peak_reverse_torque_current = -45
+        # scoring motor configs
         scoring_cfg = configs.TalonFXSConfiguration()
-        scoring_cfg.slot0.k_p = 5
         scoring_cfg.commutation.motor_arrangement = signals.MotorArrangementValue.MINION_JST
         scoring_cfg.motor_output.neutral_mode = signals.NeutralModeValue.BRAKE
 
@@ -76,83 +83,139 @@ class CoralHandler(commands2.Subsystem):
         self.scoring_motor.set(speed)
 
     
-    def setElevatorHeight(self, height):
-        rotations = -height*constants.coral_elevator_in_to_rotations
-        self.elevator_motor.set_control(self.position_ctrl.with_position(rotations))
+    def setHeight(self, height):
+        rotations = -height*constants.elevator_in_to_rotations
+        self.elevator_motor.set_control(self.position_torque.with_position(rotations))
 
     def setAngle(self, angle):
         rotations = -angle/360*constants.coral_angle_gear_ratio
-        self.angle_motor.set_control(self.position_ctrl.with_position(rotations))
+        self.angle_motor.set_control(self.position_torque.with_position(rotations))
 
-    def intake(self):
-        self.setIntakeSpeed(0.25)
-        self.setElevatorHeight(20)
-        self.setAngle(30)
-        print("intaking")
-    
-    def goHome(self, input: bool = False):
+    def setHeightAndAngle(self, height, angle):
+        self.setHeight(height)
+        self.setAngle(angle)
+
+    def brakeIntake(self):
         self.scoring_motor.set_control(controls.NeutralOut())
-        self.setElevatorHeight(0)
-        self.setAngle(0)
-        print("going home")
-
-    def lowerElevator(self, input: bool = False):
-        self.setIntakeSpeed(0)
-        self.setElevatorHeight(0)
-        self.setAngle(20)
-        print("lowering elevator")
-
-    #def placeCoralL4(self):
-        #self.setElevatorHeight(constants.L4_height)
-        #self.setIntakeSpeed(constants.release_intake)
-
-   # def placeCoralL3(self):
-       # self.setElevatorHeight(constants.L3_height)
-       # self.setIntakeSpeed(constants.release_intake)
-
-    #def placeCoralL2(self):
-        #self.setElevatorHeight(constants.L2_height)
-        #self.setIntakeSpeed(constants.release_intake)
-
-   # def placeCoralL1(self):
-       # self.setElevatorHeight(constants.L1_height)
-       # #somehow rotate coral horizontally
-        #self.setIntakeSpeed(constants.release_intake)
-
 
     def intakeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
+            self.setHeightAndAngleCommand(11, 22),
             commands2.FunctionalCommand(
-                self.intake,
+                lambda: self.setIntakeSpeed(0.25),
                 self.doNothing,
                 self.doNothing,
                 lambda: not self.intakeSensor.get(),
-                CoralHandler
+                self
             ),
             commands2.FunctionalCommand(
                 lambda: self.scoring_motor.set(-0.1),
                 self.doNothing,
-                lambda: self.scoring_motor.set_control(controls.NeutralOut()),
+                lambda x: self.brakeIntake(),
                 lambda: self.intakeSensor.get(),
-                CoralHandler
+                self
+            ),
+            commands2.FunctionalCommand(
+                lambda: self.scoring_motor.set(0.1),
+                self.doNothing,
+                lambda x: self.brakeIntake(),
+                lambda: not self.intakeSensor.get(),
+                self
             )
         )
     
     def homeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.FunctionalCommand(
-                self.lowerElevator,
+                lambda: self.setHeightAndAngle(5, 10),
                 self.doNothing,
                 self.doNothing,
-                lambda: abs(self.elevator_motor.get_position().value_as_double - 0) < 0.5,
-                CoralHandler
+                lambda: self.getHeightReached(5) and self.getAngleReached(10),
+                self
             ),
             commands2.FunctionalCommand(
-                self.goHome,
+                lambda: self.setHeight(0),
+                self.doNothing,
+                lambda x: self.setAngle(-5),
+                lambda: self.getHeightReached(0),
+                self
+            )
+        )
+    
+    def setHeightAndAngleCommand(self, height, angle) -> commands2.Command:
+        return commands2.cmd.sequence(
+            commands2.FunctionalCommand(
+                lambda: self.setAngle(10),
                 self.doNothing,
                 self.doNothing,
-                lambda: not self.intakeSensor.get(),
-                CoralHandler
+                lambda: self.getAngleReached(10),
+                self
+            ),
+            commands2.FunctionalCommand(
+                lambda: self.setHeight(5),
+                self.doNothing,
+                self.doNothing,
+                lambda: self.getHeightReached(5),
+                self
+            ),
+            commands2.FunctionalCommand(
+                lambda: self.setHeightAndAngle(height, angle),
+                self.doNothing,
+                self.doNothing,
+                lambda: self.getHeightReached(height) and self.getAngleReached(angle),
+                self
+            )
+        )
+    
+    def goL4Command(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAngleCommand(44, 83),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
+            commands2.FunctionalCommand(
+                lambda: self.setIntakeSpeed(0.25),
+                self.doNothing,
+                lambda x: self.brakeIntake(),
+                self.intakeSensor.get,
+                self
+            )
+        )
+    
+    def goL3Command(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAngleCommand(6, 145),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
+            commands2.FunctionalCommand(
+                lambda: self.setIntakeSpeed(0.25),
+                self.doNothing,
+                lambda x: self.brakeIntake(),
+                self.intakeSensor.get,
+                self
+            )
+        )
+    
+    def goL2Command(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAngleCommand(5, -10),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
+            commands2.InstantCommand(
+                lambda: self.setIntakeSpeed(-0.25),
+                self
+            ),
+            commands2.WaitCommand(1),
+            commands2.InstantCommand(
+                lambda: self.brakeIntake()
+            )
+        )
+    
+    def goL1Command(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            commands2.InstantCommand(
+                lambda: self.setIntakeSpeed(-0.18),
+                self
+            ),
+            commands2.WaitCommand(1),
+            commands2.InstantCommand(
+                lambda: self.brakeIntake()
             )
         )
 
@@ -175,7 +238,10 @@ class CoralHandler(commands2.Subsystem):
             self._i_range = 0
 
     def teleopPeriodic(self):
-        pass
+        SmartDashboard.putNumber("skew", self.skew)
+        SmartDashboard.putNumber("distance", self.average_distance)
+        SmartDashboard.putNumber("left_dist", self.left_distance)
+        SmartDashboard.putNumber("right_dist", self.right_distance)
     
     def periodic(self):
         super().periodic()
@@ -185,3 +251,10 @@ class CoralHandler(commands2.Subsystem):
     # function that does nothing
     def doNothing(self, x = False):
         pass
+
+    def getHeightReached(self, position) -> bool:
+        return abs(-self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations - position) < 0.5
+    
+    def getAngleReached(self, angle) -> bool:
+        current_angle = -self.angle_motor.get_position().value_as_double*360/constants.coral_angle_gear_ratio
+        return abs(current_angle - angle) < 5
