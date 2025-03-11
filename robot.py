@@ -19,6 +19,7 @@ class Robot(commands2.TimedCommandRobot):
         self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
         self.leftPath2 = choreo.load_swerve_trajectory("Left Path 2")
         self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
+        self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
 
         self.scoreRightCmd = commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral())
         self.scoreRightTrigger = self.command_keypad.button(12)
@@ -44,16 +45,8 @@ class Robot(commands2.TimedCommandRobot):
         self.coralHandler.setHeightAndAngles(0, 0, 0)
         self.coralHandler.brakeIntake()
         initial_pose = self.centerPath1.get_initial_pose()
-        Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians())
-        commands2.cmd.sequence(
-            commands2.cmd.parallel(
-                self.coralHandler.goL4Auto(),
-                Swerve.followTrajectory(self.leftPath1)
-            ),
-            self.scoreLeftCmd,
-            Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().x)),
-            Swerve.followTrajectory(self.leftPath2)
-        ).schedule()
+        Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()).schedule()
+        Swerve.followTrajectory(self.odometryTestPath).schedule()
 
     def autonomousPeriodic(self):
         pass
