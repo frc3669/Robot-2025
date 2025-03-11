@@ -1,5 +1,5 @@
 import cmath, commands2, choreo
-from wpilib import Timer, SmartDashboard, Joystick, DriverStation
+from wpilib import Timer, SmartDashboard, Joystick, DriverStation, DigitalInput, DigitalGlitchFilter
 from phoenix6 import hardware
 from utils.trajectory import Trajectory
 from subsystems.swerveModule import SwerveModule, constants, mf
@@ -8,8 +8,9 @@ from typing import final
 @final
 class Swerve(commands2.Subsystem):
     gyro = hardware.Pigeon2(1, "CTREdevices")
+    poleSensor = DigitalInput(1)
     auto_timer = Timer()
-    modules = []
+    modules: list[SwerveModule] = []
     slew_velocity = complex()
     slew_angular_velocity = 0
     position = 0 + 0j
@@ -146,6 +147,47 @@ class Swerve(commands2.Subsystem):
             lambda x : Swerve.doNothing(),
             lambda: Swerve.auto_timer.hasElapsed(trajectory.get_total_time()),
             Swerve)
+
+    def simpleDrive(velocity: complex, angular_velocity: float = 0):
+        highest = constants.max_m_per_sec
+        for module in Swerve.modules:
+            module_speed = abs(module.find_module_vector(velocity, angular_velocity))
+            if module_speed > highest:
+                highest = module_speed
+        velocity *= constants.max_m_per_sec/highest
+        angular_velocity *= constants.max_m_per_sec/highest
+        for module in Swerve.modules:
+            module.set_velocity(velocity, angular_velocity)
+    
+    def driveRightToPole() -> commands2.Command:
+        return commands2.cmd.race(
+            commands2.FunctionalCommand (
+                lambda: Swerve.simpleDrive(0-0.3j),
+                lambda: Swerve.simpleDrive(0-0.3j),
+                lambda x : Swerve.simpleDrive(0),
+                lambda: not Swerve.poleSensor.get(),
+                Swerve),
+            commands2.WaitCommand(2.5)
+        )
+    
+    def driveLeftToPole() -> commands2.Command:
+            return commands2.FunctionalCommand (
+                lambda: Swerve.simpleDrive(0+0.3j),
+                lambda: Swerve.simpleDrive(0+0.3j),
+                lambda x : Swerve.simpleDrive(0),
+                lambda: not Swerve.poleSensor.get(),
+                Swerve)
+    
+    def resetPoseCmd(new_position: complex, new_angle: float) -> commands2.Command:
+            return commands2.InstantCommand (
+                lambda: Swerve.resetPose(new_position, new_angle),
+                Swerve)
+    
+    def resetPositionCmd(new_position: complex) -> commands2.Command:
+        return commands2.InstantCommand (
+            lambda: Swerve.resetPosition(new_position),
+            Swerve
+        )
     
     @staticmethod
     def getTrajectoryRemainingTime():
@@ -168,6 +210,13 @@ class Swerve(commands2.Subsystem):
             module.reset_encoders()
         Swerve.position = new_position
     
+    def resetPose(new_position: complex, new_angle: float):
+        for module in Swerve.modules:
+            module.reset_encoders()
+        Swerve.position = new_position
+        Swerve.startingAngle = new_angle
+
+    
     @staticmethod
     def getRotationRate():
         angularRate = 0
@@ -175,5 +224,5 @@ class Swerve(commands2.Subsystem):
             angularRate += module.getRotationContribution()
         return angularRate / 4
     
-    def doNothing():
+    def doNothing(x = False):
         pass

@@ -10,11 +10,15 @@ class CoralHandler(commands2.Subsystem):
         self.canr0 = hardware.CANrange(9, "CTREdevices")
         self.canr1 = hardware.CANrange(10, "CTREdevices")
         self.intakeSensor = DigitalInput(0)
+        self.algaeIntakeSensor = DigitalInput(2)
         self.elevator_motor = hardware.TalonFX(41, "CTREdevices")
         self.scoring_motor = hardware.TalonFXS(61, "CTREdevices")
-        self.angle_motor = hardware.TalonFX(51, "CTREdevices")
+        self.algae_scoring_motor = hardware.TalonFXS(62, "CTREdevices")
+        self.coral_angle_motor = hardware.TalonFX(51, "CTREdevices")
+        self.algae_angle_motor = hardware.TalonFX(52, "CTREdevices")
         self.velocity_ctrl = controls.VelocityTorqueCurrentFOC(0)
         self.position_torque = controls.PositionTorqueCurrentFOC(0)
+        self.position_velocity = controls.MotionMagicTorqueCurrentFOC(0)
         self.position_ctrl = controls.PositionDutyCycle(0)
         self.controller = controller
         self.cmd_controller = cmd_controller
@@ -31,34 +35,56 @@ class CoralHandler(commands2.Subsystem):
         self.l3_coral_trigger.onTrue(self.goL3Command())
         self.l4_coral_trigger = self.cmd_controller.button(13)
         self.l4_coral_trigger.onTrue(self.goL4Command())
-        # angle motor configuration 
-        angle_cfg = configs.TalonFXConfiguration()
-        angle_cfg.slot0.k_p = 70
-        angle_cfg.slot0.k_d = 5
-        angle_cfg.torque_current.peak_forward_torque_current = 20
-        angle_cfg.torque_current.peak_reverse_torque_current = -40
+        self.intakeAlgaeTrigger = self.cmd_controller.button(5)
+        self.intakeAlgaeTrigger.onTrue(self.intakeAlgaeCommand())
+        # coral angle motor configuration 
+        coral_angle_cfg = configs.TalonFXConfiguration()
+        coral_angle_cfg.slot0.k_p = 40
+        coral_angle_cfg.torque_current.peak_forward_torque_current = 50
+        coral_angle_cfg.torque_current.peak_reverse_torque_current = -50
+        coral_angle_cfg.motion_magic.motion_magic_acceleration = 50
+        coral_angle_cfg.motion_magic.motion_magic_cruise_velocity = 80
+        coral_angle_cfg.motion_magic.motion_magic_jerk = 200
+        # algae angle motor configuration 
+        algae_angle_cfg = configs.TalonFXConfiguration()
+        algae_angle_cfg.slot0.k_p = 15
+        algae_angle_cfg.torque_current.peak_forward_torque_current = 30
+        algae_angle_cfg.torque_current.peak_reverse_torque_current = -30
+        algae_angle_cfg.motion_magic.motion_magic_acceleration = 20
+        algae_angle_cfg.motion_magic.motion_magic_cruise_velocity = 40
+        algae_angle_cfg.motion_magic.motion_magic_jerk = 200
         # elevotor motor configs
         elevator_cfg = configs.TalonFXConfiguration()
-        elevator_cfg.slot0.k_p = 25
-        elevator_cfg.slot0.k_d = 2
-        elevator_cfg.slot0.k_g = -15
-        elevator_cfg.torque_current.peak_forward_torque_current = 15
-        elevator_cfg.torque_current.peak_reverse_torque_current = -45
+        elevator_cfg.slot0.k_p = 20
+        elevator_cfg.slot0.k_g = -10
+        elevator_cfg.torque_current.peak_forward_torque_current = 70
+        elevator_cfg.torque_current.peak_reverse_torque_current = -70
+        elevator_cfg.motion_magic.motion_magic_acceleration = 50
+        elevator_cfg.motion_magic.motion_magic_cruise_velocity = 100
+        elevator_cfg.motion_magic.motion_magic_jerk = 200
         # scoring motor configs
         scoring_cfg = configs.TalonFXSConfiguration()
         scoring_cfg.commutation.motor_arrangement = signals.MotorArrangementValue.MINION_JST
         scoring_cfg.motor_output.neutral_mode = signals.NeutralModeValue.BRAKE
+        # scoring motor configs
+        algae_scoring_cfg = configs.TalonFXSConfiguration()
+        algae_scoring_cfg.commutation.motor_arrangement = signals.MotorArrangementValue.MINION_JST
+        algae_scoring_cfg.motor_output.neutral_mode = signals.NeutralModeValue.BRAKE
 
         # Retry config apply up to 5 times, report if failure
-        status1, status2, status3 = [StatusCode.STATUS_CODE_NOT_INITIALIZED]*3
+        status1, status2, status3, status4, status5 = [StatusCode.STATUS_CODE_NOT_INITIALIZED]*5
         for _ in range(0, 5):
             if not status1.is_ok():
                 status1 = self.elevator_motor.configurator.apply(elevator_cfg)
             if not status2.is_ok():
-                status2 = self.angle_motor.configurator.apply(angle_cfg)
+                status2 = self.coral_angle_motor.configurator.apply(coral_angle_cfg)
             if not status3.is_ok():
-                status2 = self.scoring_motor.configurator.apply(scoring_cfg)
-            if status1.is_ok() and status2.is_ok() and status3.is_ok():
+                status3 = self.scoring_motor.configurator.apply(scoring_cfg)
+            if not status4.is_ok():
+                status4 = self.algae_angle_motor.configurator.apply(algae_angle_cfg)
+            if not status5.is_ok():
+                status5 = self.algae_scoring_motor.configurator.apply(algae_scoring_cfg)
+            if status1.is_ok() and status2.is_ok() and status3.is_ok() and status4.is_ok() and status5.is_ok():
                 break
         if not status1.is_ok():
             print(f"Could not apply coral elevator configs, error code: {status1.name}")
@@ -66,12 +92,20 @@ class CoralHandler(commands2.Subsystem):
             print(f"Could not apply coral angle motor configs, error code: {status2.name}")
         if not status3.is_ok():
             print(f"Could not apply scoring motor configs, error code: {status3.name}")
+        if not status4.is_ok():
+            print(f"Could not apply algae angle motor configs, error code: {status4.name}")
+        if not status5.is_ok():
+            print(f"Could not apply algae scoring motor configs, error code: {status5.name}")
 
         self.initMovAvg()
         self.left_distance = 0
         self.right_distance = 0
         self.skew = 0
         self.average_distance = 0
+
+    def intitialize(self):
+        self.coralInitialAngle = self.coral_angle_motor.get_position().value_as_double
+        self.algaeInitialAngle = self.algae_angle_motor.get_position().value_as_double
 
     def initMovAvg(self):
         self._i_range = 0
@@ -82,94 +116,85 @@ class CoralHandler(commands2.Subsystem):
     def setIntakeSpeed(self, speed):
         self.scoring_motor.set(speed)
 
+    def setAlgaeIntakeSpeed(self, speed):
+        self.algae_scoring_motor.set(speed)
     
     def setHeight(self, height):
         rotations = -height*constants.elevator_in_to_rotations
-        self.elevator_motor.set_control(self.position_torque.with_position(rotations))
+        self.elevator_motor.set_control(self.position_velocity.with_position(rotations))
 
-    def setAngle(self, angle):
-        rotations = -angle/360*constants.coral_angle_gear_ratio
-        self.angle_motor.set_control(self.position_torque.with_position(rotations))
+    def setCoralAngle(self, angle):
+        rotations = self.coralInitialAngle - angle/360*constants.angle_gear_ratio
+        self.coral_angle_motor.set_control(self.position_velocity.with_position(rotations))
 
-    def setHeightAndAngle(self, height, angle):
+    def setAlgaeAngle(self, angle):
+        rotations = self.algaeInitialAngle + angle/360*constants.algae_angle_gear_ratio
+        self.algae_angle_motor.set_control(self.position_velocity.with_position(rotations))
+
+    def setHeightAndAngles(self, height, coral_angle, algae_angle):
         self.setHeight(height)
-        self.setAngle(angle)
+        self.setCoralAngle(coral_angle)
+        self.setAlgaeAngle(algae_angle)
 
-    def brakeIntake(self):
+    def brakeIntake(self, x = False):
         self.scoring_motor.set_control(controls.NeutralOut())
+
+    def brakeAlgaeIntake(self, x = False):
+        self.algae_scoring_motor.set_control(controls.NeutralOut())
+
+    def stopEverything(self):
+        self.scoring_motor.set_control(controls.NeutralOut())
+        self.algae_scoring_motor.set_control(controls.NeutralOut())
 
     def intakeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAngleCommand(11, 22),
-            commands2.FunctionalCommand(
-                lambda: self.setIntakeSpeed(0.25),
-                self.doNothing,
-                self.doNothing,
-                lambda: not self.intakeSensor.get(),
-                self
-            ),
-            commands2.FunctionalCommand(
-                lambda: self.scoring_motor.set(-0.1),
-                self.doNothing,
-                lambda x: self.brakeIntake(),
-                lambda: self.intakeSensor.get(),
-                self
-            ),
-            commands2.FunctionalCommand(
-                lambda: self.scoring_motor.set(0.1),
-                self.doNothing,
-                lambda x: self.brakeIntake(),
-                lambda: not self.intakeSensor.get(),
-                self
-            )
+            self.setHeightAndAnglesCommand(11, 32, 0),
+            commands2.InstantCommand(lambda: self.setIntakeSpeed(0.25), self),
+            commands2.WaitUntilCommand(lambda: not self.intakeSensor.get()),
+            commands2.InstantCommand(lambda: self.setIntakeSpeed(-0.1), self),
+            commands2.WaitUntilCommand(lambda: self.intakeSensor.get()),
+            commands2.InstantCommand(lambda: self.setIntakeSpeed(0.1), self),
+            commands2.WaitUntilCommand(lambda: not self.intakeSensor.get()),
+            commands2.InstantCommand(lambda: self.brakeIntake(), self)
+        )
+
+    def intakeAlgaeCommand(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAnglesCommand(0, 0, 170),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.25), self),
+            commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
+            commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
         )
     
     def homeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            commands2.FunctionalCommand(
-                lambda: self.setHeightAndAngle(5, 10),
-                self.doNothing,
-                self.doNothing,
-                lambda: self.getHeightReached(5) and self.getAngleReached(10),
-                self
-            ),
-            commands2.FunctionalCommand(
-                lambda: self.setHeight(0),
-                self.doNothing,
-                lambda x: self.setAngle(-5),
-                lambda: self.getHeightReached(0),
-                self
-            )
+            commands2.InstantCommand(lambda: self.stopEverything(), self),
+            commands2.InstantCommand(lambda: self.setHeightAndAngles(0, 15, 0), self),
+            commands2.WaitUntilCommand(lambda: self.getHeightReached(0) and self.getAlgaeAngleReached(0) and self.getCoralAngleReached(15)),
+            commands2.InstantCommand(lambda: self.setHeightAndAngles(0, 0, 0), self)
         )
-    
-    def setHeightAndAngleCommand(self, height, angle) -> commands2.Command:
+         
+    def setHeightAndAnglesCommand(self, height, coral_angle, algae_angle) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.FunctionalCommand(
-                lambda: self.setAngle(10),
+                lambda: self.setCoralAngle(15),
                 self.doNothing,
                 self.doNothing,
-                lambda: self.getAngleReached(10),
+                lambda: self.getCoralAngleReached(15),
                 self
             ),
             commands2.FunctionalCommand(
-                lambda: self.setHeight(5),
+                lambda: self.setHeightAndAngles(height, coral_angle, algae_angle),
                 self.doNothing,
                 self.doNothing,
-                lambda: self.getHeightReached(5),
-                self
-            ),
-            commands2.FunctionalCommand(
-                lambda: self.setHeightAndAngle(height, angle),
-                self.doNothing,
-                self.doNothing,
-                lambda: self.getHeightReached(height) and self.getAngleReached(angle),
+                lambda: self.getHeightReached(height) and self.getCoralAngleReached(coral_angle) and self.getAlgaeAngleReached(algae_angle),
                 self
             )
         )
     
     def goL4Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAngleCommand(44, 83),
+            self.setHeightAndAnglesCommand(44, 89, 0),
             commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
             commands2.FunctionalCommand(
                 lambda: self.setIntakeSpeed(0.25),
@@ -180,9 +205,12 @@ class CoralHandler(commands2.Subsystem):
             )
         )
     
+    def goL4Auto(self) -> commands2.Command:
+        return self.setHeightAndAnglesCommand(44, 93, 0)
+    
     def goL3Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAngleCommand(6, 145),
+            self.setHeightAndAnglesCommand(6, 155, 0),
             commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
             commands2.FunctionalCommand(
                 lambda: self.setIntakeSpeed(0.25),
@@ -195,7 +223,7 @@ class CoralHandler(commands2.Subsystem):
     
     def goL2Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAngleCommand(5, -10),
+            self.setHeightAndAnglesCommand(5, 0, 0),
             commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
             commands2.InstantCommand(
                 lambda: self.setIntakeSpeed(-0.25),
@@ -211,6 +239,18 @@ class CoralHandler(commands2.Subsystem):
         return commands2.cmd.sequence(
             commands2.InstantCommand(
                 lambda: self.setIntakeSpeed(-0.18),
+                self
+            ),
+            commands2.WaitCommand(1),
+            commands2.InstantCommand(
+                lambda: self.brakeIntake()
+            )
+        )
+    
+    def ejectCoral(self, isReversed: bool = False) -> commands2.Command:
+        return commands2.cmd.sequence(
+            commands2.InstantCommand(
+                lambda: self.setIntakeSpeed(-0.25 if isReversed else 0.25),
                 self
             ),
             commands2.WaitCommand(1),
@@ -242,6 +282,8 @@ class CoralHandler(commands2.Subsystem):
         SmartDashboard.putNumber("distance", self.average_distance)
         SmartDashboard.putNumber("left_dist", self.left_distance)
         SmartDashboard.putNumber("right_dist", self.right_distance)
+        SmartDashboard.putBoolean("coral detected", not self.intakeSensor.get())
+        SmartDashboard.putBoolean("algae digital", self.algaeIntakeSensor.get())
     
     def periodic(self):
         super().periodic()
@@ -255,6 +297,13 @@ class CoralHandler(commands2.Subsystem):
     def getHeightReached(self, position) -> bool:
         return abs(-self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations - position) < 0.5
     
-    def getAngleReached(self, angle) -> bool:
-        current_angle = -self.angle_motor.get_position().value_as_double*360/constants.coral_angle_gear_ratio
+    def getCoralAngleReached(self, angle) -> bool:
+        current_angle = (self.coralInitialAngle-self.coral_angle_motor.get_position().value_as_double)*360/constants.angle_gear_ratio
         return abs(current_angle - angle) < 5
+    
+    def getAlgaeAngleReached(self, angle) -> bool:
+        current_angle = (-self.algaeInitialAngle+self.algae_angle_motor.get_position().value_as_double)*360/constants.algae_angle_gear_ratio
+        return abs(current_angle - angle) < 5
+
+    def getHeight(self) -> float:
+        return -self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations

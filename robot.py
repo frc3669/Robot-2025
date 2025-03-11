@@ -16,26 +16,45 @@ class Robot(commands2.TimedCommandRobot):
         Swerve.add_module(SwerveModule(2, -1, 1))
         Swerve.add_module(SwerveModule(3, -1, -1))
         Swerve.add_module(SwerveModule(4, 1, -1))
-        self.trajectories = [
-            choreo.load_swerve_trajectory("Center to center-right L4"),
-            choreo.load_swerve_trajectory("center-right to feeder station right")
-        ]
-        self.initial_pose = self.trajectories[0].get_initial_pose()
-        Swerve.position = complex(self.initial_pose.x, self.initial_pose.y)
-        Swerve.startingAngle = self.initial_pose.rotation().radians()
+        self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
+        self.leftPath2 = choreo.load_swerve_trajectory("Left Path 2")
+        self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
+
+        self.scoreRightCmd = commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral())
+        self.scoreRightTrigger = self.command_keypad.button(12)
+        self.scoreRightTrigger.onTrue(self.scoreRightCmd)
+        self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
+        self.scoreLeftTrigger = self.command_keypad.button(11)
+        self.scoreLeftTrigger.onTrue(self.scoreLeftCmd)
+
+        self.coralHandler.intitialize()
     
     def teleopInit(self):
         DataLogManager.start()
-        self.coralHandler.setHeightAndAngle(0, -5)
+        self.coralHandler.setHeightAndAnglesCommand(0, 0, 0).schedule()
+        self.coralHandler.brakeIntake()
 
     def teleopPeriodic(self):
         # Runs once every 20ms
-        Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
+        if not self.scoreRightCmd.isScheduled():
+            Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
         self.coralHandler.updateRangeAverages()
         
     
     def autonomousInit(self) -> None:
-        commands2.cmd.sequence(Swerve.followTrajectory(trajectory) for trajectory in self.trajectories).schedule()
+        self.coralHandler.setHeightAndAngles(0, 0, 0)
+        self.coralHandler.brakeIntake()
+        initial_pose = self.centerPath1.get_initial_pose()
+        Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians())
+        commands2.cmd.sequence(
+            commands2.cmd.parallel(
+                self.coralHandler.goL4Auto(),
+                Swerve.followTrajectory(self.leftPath1)
+            ),
+            self.scoreLeftCmd,
+            Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().x)),
+            Swerve.followTrajectory(self.leftPath2)
+        ).schedule()
 
     def autonomousPeriodic(self):
         pass
