@@ -45,8 +45,10 @@ class Robot(commands2.TimedCommandRobot):
         self.coralHandler.setHeightAndAngles(0, 0, 0)
         self.coralHandler.brakeIntake()
         initial_pose = self.centerPath1.get_initial_pose()
-        Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()).schedule()
-        Swerve.followTrajectory(self.odometryTestPath).schedule()
+        commands2.cmd.sequence(
+            Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+            Swerve.followTrajectory(self.odometryTestPath)
+        ).schedule()
 
     def autonomousPeriodic(self):
         pass
