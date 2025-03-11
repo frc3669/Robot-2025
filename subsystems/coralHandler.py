@@ -22,11 +22,13 @@ class CoralHandler(commands2.Subsystem):
         self.position_ctrl = controls.PositionDutyCycle(0)
         self.controller = controller
         self.cmd_controller = cmd_controller
-        # set up event triggers
+        # set up button event triggers
         self.feederStationTrigger = self.cmd_controller.button(9)
         self.feederStationTrigger.onTrue(self.intakeCommand())
         self.homeTrigger = self.cmd_controller.button(17)
         self.homeTrigger.onTrue(self.homeCommand())
+        self.algaeHomeTrigger = self.cmd_controller.button(6)
+        self.algaeHomeTrigger.onTrue(self.homeCommand())
         self.l1_coral_trigger = self.cmd_controller.button(16)
         self.l1_coral_trigger.onTrue(self.goL1Command())
         self.l2_coral_trigger = self.cmd_controller.button(15)
@@ -37,6 +39,14 @@ class CoralHandler(commands2.Subsystem):
         self.l4_coral_trigger.onTrue(self.goL4Command())
         self.intakeAlgaeTrigger = self.cmd_controller.button(5)
         self.intakeAlgaeTrigger.onTrue(self.intakeAlgaeCommand())
+        self.intakeL3_5Trigger = self.cmd_controller.button(3)
+        self.intakeL3_5Trigger.onTrue(self.intakeL3_5())
+        self.intakeL2_5Trigger = self.cmd_controller.button(4)
+        self.intakeL2_5Trigger.onTrue(self.intakeL2_5())
+        self.scoreBargeTrigger = self.cmd_controller.button(1)
+        self.scoreBargeTrigger.onTrue(self.scoreBargeCommand())
+        self.scoreProcessorTrigger = self.cmd_controller.button(2)
+        self.scoreProcessorTrigger.onTrue(self.scoreProcessorCommand())
         # coral angle motor configuration 
         coral_angle_cfg = configs.TalonFXConfiguration()
         coral_angle_cfg.slot0.k_p = 40
@@ -70,7 +80,6 @@ class CoralHandler(commands2.Subsystem):
         algae_scoring_cfg = configs.TalonFXSConfiguration()
         algae_scoring_cfg.commutation.motor_arrangement = signals.MotorArrangementValue.MINION_JST
         algae_scoring_cfg.motor_output.neutral_mode = signals.NeutralModeValue.BRAKE
-
         # Retry config apply up to 5 times, report if failure
         status1, status2, status3, status4, status5 = [StatusCode.STATUS_CODE_NOT_INITIALIZED]*5
         for _ in range(0, 5):
@@ -96,8 +105,11 @@ class CoralHandler(commands2.Subsystem):
             print(f"Could not apply algae angle motor configs, error code: {status4.name}")
         if not status5.is_ok():
             print(f"Could not apply algae scoring motor configs, error code: {status5.name}")
-
-        self.initMovAvg()
+        # set up moving average
+        self._i_range = 0
+        self._past_left_range_values = [0 for _ in range(constants.run_ave_max_index)]
+        self._past_right_range_values = [0 for _ in range(constants.run_ave_max_index)]
+        self.run_ave_difference = 0
         self.left_distance = 0
         self.right_distance = 0
         self.skew = 0
@@ -106,12 +118,6 @@ class CoralHandler(commands2.Subsystem):
     def intitialize(self):
         self.coralInitialAngle = self.coral_angle_motor.get_position().value_as_double
         self.algaeInitialAngle = self.algae_angle_motor.get_position().value_as_double
-
-    def initMovAvg(self):
-        self._i_range = 0
-        self._past_left_range_values = [0 for _ in range(constants.run_ave_max_index)]
-        self._past_right_range_values = [0 for _ in range(constants.run_ave_max_index)]
-        self.run_ave_difference = 0
 
     def setIntakeSpeed(self, speed):
         self.scoring_motor.set(speed)
@@ -161,6 +167,22 @@ class CoralHandler(commands2.Subsystem):
     def intakeAlgaeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
             self.setHeightAndAnglesCommand(0, 0, 170),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.25), self),
+            commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
+            commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
+        )
+    
+    def intakeL2_5(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAnglesCommand(15, 0, 110),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.25), self),
+            commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
+            commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
+        )
+    
+    def intakeL3_5(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAnglesCommand(30, 0, 110),
             commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.25), self),
             commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
             commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
@@ -259,36 +281,23 @@ class CoralHandler(commands2.Subsystem):
             )
         )
 
-    def updateRangeAverages(self):
-        """
-        Print left and right rangefinder values
-            print values as 1s running averages
-        """
-        self._past_left_range_values[self._i_range] = self.canr0.get_distance().value_as_double
-        self.left_distance = sum(self._past_left_range_values)/constants.run_ave_max_index
-        
-        self._past_right_range_values[self._i_range] = self.canr1.get_distance().value_as_double
-        self.right_distance = sum(self._past_right_range_values)/constants.run_ave_max_index
+    def scoreBargeCommand(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAnglesCommand(49, 0, 30),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(1)),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(-0.4), self),
+            commands2.WaitCommand(0.75),
+            commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
+        )
 
-        self.skew = self.left_distance - self.right_distance
-        self.average_distance = (self.left_distance + self.right_distance) / 2
-        # at end of function, increment index. Loop at max index
-        self._i_range += 1
-        if self._i_range == constants.run_ave_max_index:
-            self._i_range = 0
-
-    def teleopPeriodic(self):
-        SmartDashboard.putNumber("skew", self.skew)
-        SmartDashboard.putNumber("distance", self.average_distance)
-        SmartDashboard.putNumber("left_dist", self.left_distance)
-        SmartDashboard.putNumber("right_dist", self.right_distance)
-        SmartDashboard.putBoolean("coral detected", not self.intakeSensor.get())
-        SmartDashboard.putBoolean("algae digital", self.algaeIntakeSensor.get())
-    
-    def periodic(self):
-        super().periodic()
-        if DriverStation.isTeleopEnabled():
-            self.teleopPeriodic()
+    def scoreProcessorCommand(self) -> commands2.Command:
+        return commands2.cmd.sequence(
+            self.setHeightAndAnglesCommand(0, 0, 140),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(2)),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(-0.4), self),
+            commands2.WaitCommand(0.75),
+            commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
+        )
 
     # function that does nothing
     def doNothing(self, x = False):
@@ -307,3 +316,36 @@ class CoralHandler(commands2.Subsystem):
 
     def getHeight(self) -> float:
         return -self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations
+
+    def updateRangeAverages(self):
+        """
+        get left and right CANRange distances
+        and update their running averages
+        """
+        # add new values
+        self._past_left_range_values[self._i_range] = self.canr0.get_distance().value_as_double
+        self._past_right_range_values[self._i_range] = self.canr1.get_distance().value_as_double
+        # average
+        self.left_distance = sum(self._past_left_range_values)/constants.run_ave_max_index
+        self.right_distance = sum(self._past_right_range_values)/constants.run_ave_max_index
+        # calculte skew and distance from reef
+        self.skew = self.left_distance - self.right_distance
+        self.average_distance = (self.left_distance + self.right_distance) / 2
+        # at end of function, increment index. Loop at max index
+        self._i_range += 1
+        if self._i_range == constants.run_ave_max_index:
+            self._i_range = 0
+
+    def teleopPeriodic(self):
+        SmartDashboard.putNumber("skew", self.skew)
+        SmartDashboard.putNumber("distance", self.average_distance)
+        SmartDashboard.putNumber("left_dist", self.left_distance)
+        SmartDashboard.putNumber("right_dist", self.right_distance)
+        SmartDashboard.putBoolean("coral detected", not self.intakeSensor.get())
+        SmartDashboard.putBoolean("algae digital", self.algaeIntakeSensor.get())
+        self.updateRangeAverages()
+    
+    def periodic(self):
+        super().periodic()
+        if DriverStation.isTeleopEnabled():
+            self.teleopPeriodic()

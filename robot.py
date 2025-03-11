@@ -31,14 +31,13 @@ class Robot(commands2.TimedCommandRobot):
     
     def teleopInit(self):
         DataLogManager.start()
-        self.coralHandler.setHeightAndAnglesCommand(0, 0, 0).schedule()
+        self.coralHandler.homeCommand().schedule()
         self.coralHandler.brakeIntake()
 
     def teleopPeriodic(self):
         # Runs once every 20ms
-        if not self.scoreRightCmd.isScheduled():
+        if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
             Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
-        self.coralHandler.updateRangeAverages()
         
     
     def autonomousInit(self) -> None:
