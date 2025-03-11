@@ -284,7 +284,7 @@ class CoralHandler(commands2.Subsystem):
     def scoreBargeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
             self.setHeightAndAnglesCommand(49, 0, 30),
-            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(1)),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(8)),
             commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(-0.4), self),
             commands2.WaitCommand(0.75),
             commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
