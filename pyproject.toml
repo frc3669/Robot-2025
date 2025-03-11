@@ -18,7 +18,6 @@ robotpy_extras = [
     # "navx",
     "pathplannerlib",
     # "phoenix5",
-    # "phoenix6==25.3",
     # "photonvision",
     # "playingwithfusion",
     "rev",
@@ -29,5 +28,6 @@ robotpy_extras = [
 
 # Other pip packages to install
 requires = [
-    "phoenix6==25.3"
+    "phoenix6==25.3",
+    "sleipnirgroup-choreolib"
 ]

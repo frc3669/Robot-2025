@@ -1,73 +1,66 @@
-import wpilib, commands2
+import wpilib, commands2, choreo
 from wpilib import DataLogManager, XboxController, SmartDashboard
-import wpilib.drive
+import wpilib.interfaces
 from subsystems.swerve import Swerve, SwerveModule, Trajectory
 from subsystems.coralHandler import CoralHandler
 from subsystems.climb import Climb
-# from phoenix6 import hardware, controls, configs, StatusCode
 
 class Robot(commands2.TimedCommandRobot):
     def robotInit(self):
-        self.controller = wpilib.Joystick(0)
-        self.keypad = wpilib.Joystick(1)
-        self.coralHandler = CoralHandler(self.keypad)
-        self.climb = Climb()
-        
-        # Make sure we start at 0
-        # Run once when the robot first turns on
-        # self is where you can place class variables. They will be
-        #  available in all class functions
+        self.controller = wpilib.interfaces.GenericHID(0)
+        self.keypad = wpilib.interfaces.GenericHID(1)
+        self.command_keypad = commands2.button.CommandGenericHID(1)
+        self.coralHandler = CoralHandler(self.keypad, self.command_keypad)
+        self.climb = Climb(self.keypad)
         Swerve.add_module(SwerveModule(1, 1, 1))
         Swerve.add_module(SwerveModule(2, -1, 1))
         Swerve.add_module(SwerveModule(3, -1, -1))
         Swerve.add_module(SwerveModule(4, 1, -1))
+        self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
+        self.leftPath2 = choreo.load_swerve_trajectory("Left Path 2")
+        self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
 
+        self.scoreRightCmd = commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral())
+        self.scoreRightTrigger = self.command_keypad.button(12)
+        self.scoreRightTrigger.onTrue(self.scoreRightCmd)
+        self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
+        self.scoreLeftTrigger = self.command_keypad.button(11)
+        self.scoreLeftTrigger.onTrue(self.scoreLeftCmd)
 
+        self.coralHandler.intitialize()
     
     def teleopInit(self):
         DataLogManager.start()
-        self.coralHandler.goHome()
-
-        
+        self.coralHandler.setHeightAndAnglesCommand(0, 0, 0).schedule()
+        self.coralHandler.brakeIntake()
 
     def teleopPeriodic(self):
-        # Runs once every 50ms
-        Swerve.driveTeleop(self.controller, self.controller.getRawButton(0), self.coralHandler.skew)
-        #self.keypad.getRawButtonPressed())
-        #self.elevatorMotor.set_control(controls.DutyCycleOut(self.controller.getRawAxis(0)))
-        if self.keypad.getRawButton(18):
-            self.climb.extend()
-        elif self.keypad.getRawButton(19):
-            self.climb.retract()
-        else:
-            self.climb.brake()
-
+        # Runs once every 20ms
+        if not self.scoreRightCmd.isScheduled():
+            Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
         self.coralHandler.updateRangeAverages()
-        SmartDashboard.putNumber("Skew", self.coralHandler.skew)
-        SmartDashboard.putNumber("Average_distance", self.coralHandler.average_distance)
-        SmartDashboard.putNumber('elevator_pos', self.coralHandler.elevator_motor.get_position().value_as_double)
         
-
     
     def autonomousInit(self) -> None:
+        self.coralHandler.setHeightAndAngles(0, 0, 0)
+        self.coralHandler.brakeIntake()
+        initial_pose = self.centerPath1.get_initial_pose()
+        Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians())
         commands2.cmd.sequence(
-            Swerve.followTrajectory(Trajectory("Test.traj")),
-            Swerve.followTrajectory(Trajectory("Test.traj"))).schedule()
+            commands2.cmd.parallel(
+                self.coralHandler.goL4Auto(),
+                Swerve.followTrajectory(self.leftPath1)
+            ),
+            self.scoreLeftCmd,
+            Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().x)),
+            Swerve.followTrajectory(self.leftPath2)
+        ).schedule()
 
     def autonomousPeriodic(self):
-        """This function is called periodically during autonomous"""
-        stage = 0
-        wait = 0
+        pass
 
-        if stage == 0:
-            # do something
-            pass
-            # until
-            if wait > 100:
-                wait = 0
-                stage += 1
-        elif stage == 1:
-            pass
+    def is_red_alliance(self):
+        return wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed
 
 if __name__ == "__main__":
     wpilib.run(Robot)
