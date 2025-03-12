@@ -116,6 +116,7 @@ class CoralHandler(commands2.Subsystem):
     def goL4Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
             self.setHeightAndAnglesCommand(44, 89, 0),
+            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
             commands2.InstantCommand(lambda: self.setIntakeSpeed(0.25), self),
             commands2.WaitUntilCommand(lambda: self.intakeSensor.get()),
             commands2.InstantCommand(lambda: self.brakeIntake(), self)
@@ -173,10 +174,6 @@ class CoralHandler(commands2.Subsystem):
             commands2.WaitCommand(0.75),
             commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
         )
-
-    # function that does nothing
-    def doNothing(self, x = False):
-        pass
 
     def getHeightReached(self, position) -> bool:
         return abs(-self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations - position) < 0.5
