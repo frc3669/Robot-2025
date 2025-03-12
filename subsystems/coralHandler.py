@@ -53,7 +53,12 @@ class CoralHandler(commands2.Subsystem):
         self.scoring_motor.set_control(controls.NeutralOut())
 
     def setEjectCoralSpeed(self):
-        self.scoring_motor.set_control(controls.DutyCycleOut(0.25 if self.getCoralAngle() > 60 else -0.25))
+        if self.getCoralAngle() > 60:
+            self.scoring_motor.set_control(controls.DutyCycleOut(0.25))
+        elif self.getHeightReached(5):
+            self.scoring_motor.set_control(controls.DutyCycleOut(-0.5))
+        else:
+            self.scoring_motor.set_control(controls.DutyCycleOut(-0.25))
 
     def brakeAlgaeIntake(self, x = False):
         self.algae_scoring_motor.set_control(controls.NeutralOut())
