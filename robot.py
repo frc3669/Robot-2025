@@ -20,14 +20,12 @@ class Robot(commands2.TimedCommandRobot):
         self.leftPath2 = choreo.load_swerve_trajectory("Left Path 2")
         self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
         self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
-
         self.scoreRightCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
         self.scoreRightTrigger = self.command_keypad.button(12)
         self.scoreRightTrigger.onTrue(self.scoreRightCmd)
         self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
         self.scoreLeftTrigger = self.command_keypad.button(11)
         self.scoreLeftTrigger.onTrue(self.scoreLeftCmd)
-
         self.coralHandler.intitialize()
     
     def teleopInit(self):
@@ -39,7 +37,6 @@ class Robot(commands2.TimedCommandRobot):
         # Runs once every 20ms
         if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
             Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
-        
     
     def autonomousInit(self) -> None:
         self.coralHandler.setHeightAndAngles(0, 0, 0)
