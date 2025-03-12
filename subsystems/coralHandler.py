@@ -124,9 +124,6 @@ class CoralHandler(commands2.Subsystem):
     def goL4Command(self) -> commands2.Command:
         return self.setHeightAndAnglesCommand(44, 89, 0)
     
-    def goL4Auto(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(44, 93, 0)
-    
     def goL3Command(self) -> commands2.Command:
         return self.setHeightAndAnglesCommand(6, 150, 0)
     
