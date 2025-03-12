@@ -122,34 +122,16 @@ class CoralHandler(commands2.Subsystem):
         )
     
     def goL4Command(self) -> commands2.Command:
-        return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(44, 89, 0),
-            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
-            commands2.InstantCommand(lambda: self.setIntakeSpeed(0.25), self),
-            commands2.WaitUntilCommand(lambda: self.intakeSensor.get()),
-            commands2.InstantCommand(lambda: self.brakeIntake(), self)
-        )
+        return self.setHeightAndAnglesCommand(44, 89, 0)
     
     def goL4Auto(self) -> commands2.Command:
         return self.setHeightAndAnglesCommand(44, 93, 0)
     
     def goL3Command(self) -> commands2.Command:
-        return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(6, 155, 0),
-            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
-            commands2.InstantCommand(lambda: self.setIntakeSpeed(0.25), self),
-            commands2.WaitUntilCommand(lambda: self.intakeSensor.get()),
-            commands2.InstantCommand(lambda: self.brakeIntake(), self)
-        )
+        return self.setHeightAndAnglesCommand(6, 150, 0)
     
     def goL2Command(self) -> commands2.Command:
-        return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(5, 0, 0),
-            commands2.WaitUntilCommand(lambda: self.controller.getRawButton(10)),
-            commands2.InstantCommand(lambda: self.setIntakeSpeed(-0.25), self),
-            commands2.WaitCommand(1),
-            commands2.InstantCommand(lambda: self.brakeIntake(), self)
-        )
+        return self.setHeightAndAnglesCommand(5, 0, 0)
     
     def goL1Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
@@ -158,7 +140,7 @@ class CoralHandler(commands2.Subsystem):
             commands2.InstantCommand(lambda: self.brakeIntake(), self)
         )
     
-    def ejectCoral(self, isReversed: bool = False) -> commands2.Command:
+    def ejectCoral(self) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.InstantCommand(lambda: self.setEjectCoralSpeed(), self),
             commands2.WaitCommand(1),
@@ -228,6 +210,7 @@ class CoralHandler(commands2.Subsystem):
         self.l2_coral_trigger = self.cmd_controller.button(15).onTrue(self.goL2Command())
         self.l3_coral_trigger = self.cmd_controller.button(14).onTrue(self.goL3Command())
         self.l4_coral_trigger = self.cmd_controller.button(13).onTrue(self.goL4Command())
+        self.scoreCoralTrigger = self.cmd_controller.button(10).onTrue(self.ejectCoral())
         self.intakeAlgaeTrigger = self.cmd_controller.button(5).onTrue(self.intakeAlgaeCommand())
         self.intakeL3_5Trigger = self.cmd_controller.button(3).onTrue(self.intakeL3_5())
         self.intakeL2_5Trigger = self.cmd_controller.button(4).onTrue(self.intakeL2_5())
