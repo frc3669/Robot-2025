@@ -1,7 +1,7 @@
 import wpilib, commands2, choreo
-from wpilib import DataLogManager, XboxController, SmartDashboard
+from wpilib import DataLogManager, SmartDashboard
 import wpilib.interfaces
-from subsystems.swerve import Swerve, SwerveModule, Trajectory
+from subsystems.swerve import Swerve, SwerveModule
 from subsystems.coralHandler import CoralHandler
 from subsystems.climb import Climb
 
@@ -21,12 +21,9 @@ class Robot(commands2.TimedCommandRobot):
         self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
         self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
         self.scoreRightCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
-        self.scoreRightTrigger = self.command_keypad.button(12)
-        self.scoreRightTrigger.onTrue(self.scoreRightCmd)
+        self.scoreRightTrigger = self.command_keypad.button(12).onTrue(self.scoreRightCmd)
         self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
-        self.scoreLeftTrigger = self.command_keypad.button(11)
-        self.scoreLeftTrigger.onTrue(self.scoreLeftCmd)
-        self.coralHandler.intitialize()
+        self.scoreLeftTrigger = self.command_keypad.button(11).onTrue(self.scoreLeftCmd)
     
     def teleopInit(self):
         DataLogManager.start()
@@ -35,6 +32,7 @@ class Robot(commands2.TimedCommandRobot):
 
     def teleopPeriodic(self):
         # Runs once every 20ms
+
         if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
             Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
     

@@ -1,7 +1,6 @@
 import cmath, commands2, choreo
-from wpilib import Timer, SmartDashboard, Joystick, DriverStation, DigitalInput, DigitalGlitchFilter
+from wpilib import Timer, SmartDashboard, Joystick, DriverStation, DigitalInput
 from phoenix6 import hardware
-from utils.trajectory import Trajectory
 from subsystems.swerveModule import SwerveModule, constants, mf
 from typing import final
 
@@ -148,6 +147,7 @@ class Swerve(commands2.Subsystem):
             lambda: Swerve.auto_timer.hasElapsed(trajectory.get_total_time()),
             Swerve)
 
+    @staticmethod
     def simpleDrive(velocity: complex, angular_velocity: float = 0):
         highest = constants.max_m_per_sec
         for module in Swerve.modules:
@@ -158,7 +158,7 @@ class Swerve(commands2.Subsystem):
         angular_velocity *= constants.max_m_per_sec/highest
         for module in Swerve.modules:
             module.set_velocity(velocity, angular_velocity)
-    
+
     def driveRightToPole() -> commands2.Command:
         return commands2.cmd.race(
             commands2.FunctionalCommand (
