@@ -269,10 +269,10 @@ class CoralHandler(commands2.Subsystem):
             )
         )
     
-    def ejectCoral(self) -> commands2.Command:
+    def ejectCoral(self, isReversed: bool = False) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.InstantCommand(
-                lambda: self.setIntakeSpeed(-0.25 if self.getAlgaeAngle() < 60 else 0.25),
+                lambda: self.setIntakeSpeed(-0.25 if isReversed else 0.25),
                 self
             ),
             commands2.WaitCommand(1),
