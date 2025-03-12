@@ -269,10 +269,10 @@ class CoralHandler(commands2.Subsystem):
             )
         )
     
-    def ejectCoral(self, isReversed: bool = False) -> commands2.Command:
+    def ejectCoral(self) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.InstantCommand(
-                lambda: self.setIntakeSpeed(-0.25 if isReversed else 0.25),
+                lambda: self.setIntakeSpeed(-0.25 if self.getAlgaeAngle() < 60 else 0.25),
                 self
             ),
             commands2.WaitCommand(1),
@@ -313,6 +313,9 @@ class CoralHandler(commands2.Subsystem):
     def getAlgaeAngleReached(self, angle) -> bool:
         current_angle = (-self.algaeInitialAngle+self.algae_angle_motor.get_position().value_as_double)*360/constants.algae_angle_gear_ratio
         return abs(current_angle - angle) < 5
+    
+    def getAlgaeAngle(self) -> float:
+        return (-self.algaeInitialAngle+self.algae_angle_motor.get_position().value_as_double)*360/constants.algae_angle_gear_ratio
 
     def getHeight(self) -> float:
         return -self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations

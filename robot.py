@@ -21,7 +21,7 @@ class Robot(commands2.TimedCommandRobot):
         self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
         self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
 
-        self.scoreRightCmd = commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral())
+        self.scoreRightCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
         self.scoreRightTrigger = self.command_keypad.button(12)
         self.scoreRightTrigger.onTrue(self.scoreRightCmd)
         self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
