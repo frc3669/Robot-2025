@@ -218,14 +218,16 @@ class CoralHandler(commands2.Subsystem):
         # coral angle motor configuration 
         coral_angle_cfg = configs.TalonFXConfiguration()
         coral_angle_cfg.slot0.k_p = 40
+        coral_angle_cfg.slot0.k_s = 4
         coral_angle_cfg.torque_current.peak_forward_torque_current = 50
         coral_angle_cfg.torque_current.peak_reverse_torque_current = -50
-        coral_angle_cfg.motion_magic.motion_magic_acceleration = 50
+        coral_angle_cfg.motion_magic.motion_magic_acceleration = 80
         coral_angle_cfg.motion_magic.motion_magic_cruise_velocity = 80
-        coral_angle_cfg.motion_magic.motion_magic_jerk = 200
+        coral_angle_cfg.motion_magic.motion_magic_jerk = 300
         # algae angle motor configuration 
         algae_angle_cfg = configs.TalonFXConfiguration()
-        algae_angle_cfg.slot0.k_p = 15
+        algae_angle_cfg.slot0.k_p = 30
+        algae_angle_cfg.slot0.k_s = 4
         algae_angle_cfg.torque_current.peak_forward_torque_current = 30
         algae_angle_cfg.torque_current.peak_reverse_torque_current = -30
         algae_angle_cfg.motion_magic.motion_magic_acceleration = 20
@@ -233,13 +235,14 @@ class CoralHandler(commands2.Subsystem):
         algae_angle_cfg.motion_magic.motion_magic_jerk = 200
         # elevotor motor configs
         elevator_cfg = configs.TalonFXConfiguration()
-        elevator_cfg.slot0.k_p = 20
+        elevator_cfg.slot0.k_p = 30
+        elevator_cfg.slot0.k_s = 5
         elevator_cfg.slot0.k_g = -10
         elevator_cfg.torque_current.peak_forward_torque_current = 70
         elevator_cfg.torque_current.peak_reverse_torque_current = -70
         elevator_cfg.motion_magic.motion_magic_acceleration = 50
         elevator_cfg.motion_magic.motion_magic_cruise_velocity = 100
-        elevator_cfg.motion_magic.motion_magic_jerk = 200
+        elevator_cfg.motion_magic.motion_magic_jerk = 300
         # scoring motor configs
         scoring_cfg = configs.TalonFXSConfiguration()
         scoring_cfg.commutation.motor_arrangement = signals.MotorArrangementValue.MINION_JST
