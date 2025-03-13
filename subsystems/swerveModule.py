@@ -1,5 +1,5 @@
 import cmath, commands2
-from phoenix6 import hardware, controls, configs, StatusCode
+from phoenix6 import hardware, controls, configs, StatusCode, signals
 import constants
 from utils import mathFunctions as mf
 from wpilib import SmartDashboard
@@ -18,6 +18,7 @@ class SwerveModule(commands2.Subsystem):
         cfg.slot0.k_s = 3
         cfg.torque_current.peak_forward_torque_current = constants.max_current
         cfg.torque_current.peak_reverse_torque_current = -constants.max_current
+        cfg.motor_output.neutral_mode = signals.NeutralModeValue.BRAKE
         # Retry config apply up to 5 times, report if failure
         status: StatusCode = StatusCode.STATUS_CODE_NOT_INITIALIZED
         for _ in range(0, 5):
@@ -61,6 +62,11 @@ class SwerveModule(commands2.Subsystem):
         self.drive_motor.set_control(self.velocity_ctrl.with_velocity(wheel_speed*constants.motor_turns_per_m).with_feed_forward(wheel_accel_current))
         SmartDashboard.putNumber("wheel_vel_" + str(self.moduleID), self.drive_motor.get_velocity().value_as_double)
         self.odometryCalc()
+
+    
+    def brake(self):
+        self.drive_motor.set_control(controls.NeutralOut())
+        self.steering_motor.set_control(controls.StaticBrake())
 
     def accelTest(self, torque_current: float = 0):
         self.angle = self.angle_encoder.get_absolute_position().value_as_double*cmath.tau

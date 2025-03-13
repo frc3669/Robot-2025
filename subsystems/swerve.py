@@ -146,7 +146,7 @@ class Swerve(commands2.Subsystem):
         return commands2.FunctionalCommand (
             lambda: Swerve.setTrajectory(trajectory), 
             lambda: Swerve.moveToNextSample(),
-            lambda x : Swerve.doNothing(),
+            lambda x : Swerve.brake(),
             lambda: Swerve.auto_timer.hasElapsed(trajectory.get_total_time()),
             Swerve)
 
@@ -161,6 +161,11 @@ class Swerve(commands2.Subsystem):
         angular_velocity *= constants.max_m_per_sec/highest
         for module in Swerve.modules:
             module.set_velocity(velocity, angular_velocity)
+
+    @staticmethod
+    def brake():
+        for module in Swerve.modules:
+            module.brake()
 
     def driveRightToPole() -> commands2.Command:
         return commands2.cmd.race(
