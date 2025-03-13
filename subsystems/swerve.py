@@ -28,7 +28,9 @@ class Swerve(commands2.Subsystem):
     def driveTeleop(controller: Joystick, reefAlignEnabled = False, feederStationAlignEnabled = False):
         velocity = 0
         angular_velocity = 0
+        dB = 0.03
         if controller.getName() == "Controller (Xbox One For Windows)":
+            dB = 0.05
             velocity = complex(-controller.getRawAxis(1), -controller.getRawAxis(0))
             angular_velocity = -controller.getRawAxis(4)
             if controller.getRawButton(4):
@@ -39,7 +41,6 @@ class Swerve(commands2.Subsystem):
             if controller.getRawButton(4):
                 Swerve.gyro.set_yaw(0)
         # apply smooth deadband
-        dB = 0.03
         if abs(velocity) > dB:
             velocity *= (1 - dB/abs(velocity))/(1 - dB)
         else:
