@@ -13,7 +13,7 @@ max_accel = 10
 max_m_per_sec_per_cycle = max_accel * code_cycle_time
 current_to_accel_ratio = 9
 motor_turns_per_wheel_turn = 6.75
-wheel_diameter_m = 0.10081
+wheel_diameter_m = 0.11266525 #0.10081
 motor_turns_per_m = motor_turns_per_wheel_turn / (wheel_diameter_m*math.pi)
 max_m_per_sec = 4.5
 
