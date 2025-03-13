@@ -16,13 +16,29 @@ class Robot(commands2.TimedCommandRobot):
         Swerve.add_module(SwerveModule(2, -1, 1))
         Swerve.add_module(SwerveModule(3, -1, -1))
         Swerve.add_module(SwerveModule(4, 1, -1))
+        # add autonomous selector to Smartdashboard
+        self.chooser = wpilib.SendableChooser()
+        self.calibrationAuto = "Calibration Auto"
+        self.centerAuto = "Center Auto"
+        self.leftAuto = "Left Auto"
+        self.rightAuto = "Right Auto"
+        self.chooser.setDefaultOption("Calibrate Odometry", self.calibrationAuto)
+        self.chooser.addOption("Center Auto", self.centerAuto)
+        self.chooser.addOption("Left Auto", self.leftAuto)
+        self.chooser.addOption("Right Auto", self.rightAuto)
+        SmartDashboard.putData("Auto choices", self.chooser)
+        # load Choreo paths
         self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
         self.leftPath2 = choreo.load_swerve_trajectory("Left Path 2")
         self.centerPath1 = choreo.load_swerve_trajectory("Center Path 1")
+        self.centerPath2 = choreo.load_swerve_trajectory("Center Path 2")
+        self.rightPath1 = choreo.load_swerve_trajectory("Right Path 1")
+        self.rightPath2 = choreo.load_swerve_trajectory("Right Path 2")
         self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
+        # create commands for auto scoring
         self.scoreRightCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
-        self.scoreRightTrigger = self.command_keypad.button(12).onTrue(self.scoreRightCmd)
         self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
+        self.scoreRightTrigger = self.command_keypad.button(12).onTrue(self.scoreRightCmd)
         self.scoreLeftTrigger = self.command_keypad.button(11).onTrue(self.scoreLeftCmd)
     
     def teleopInit(self):
@@ -31,25 +47,55 @@ class Robot(commands2.TimedCommandRobot):
         self.coralHandler.brakeIntake()
 
     def teleopPeriodic(self):
-        # Runs once every 20ms
-
         if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
             Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
     
     def autonomousInit(self) -> None:
+        self.autoSelected = self.chooser.getSelected()
+        print("Auto selected: " + self.autoSelected)
         self.coralHandler.setHeightAndAngles(0, 0, 0)
         self.coralHandler.brakeIntake()
-        initial_pose = self.centerPath1.get_initial_pose()
-        commands2.cmd.sequence(
-            Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
-            Swerve.followTrajectory(self.odometryTestPath)
-        ).schedule()
+        match self.autoSelected:
+            case self.calibrationAuto:
+                initial_pose = self.odometryTestPath.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    Swerve.followTrajectory(self.odometryTestPath)
+                ).schedule()
+            case self.centerAuto:
+                initial_pose = self.centerPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.centerPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreRightCmd,
+                    Swerve.resetPositionCmd(complex(self.centerPath2.get_initial_pose().x, self.centerPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.centerPath2)
+                ).schedule()
+            case self.leftAuto:
+                initial_pose = self.leftPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.leftPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreLeftCmd,
+                    Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.leftPath2)
+                ).schedule()
+            case self.rightAuto:
+                initial_pose = self.rightPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.rightPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreRightCmd,
+                    Swerve.resetPositionCmd(complex(self.rightPath2.get_initial_pose().x, self.rightPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.rightPath2)
+                ).schedule()
 
-    def autonomousPeriodic(self):
-        pass
-
-    def is_red_alliance(self):
-        return wpilib.DriverStation.getAlliance() == wpilib.DriverStation.Alliance.kRed
 
 if __name__ == "__main__":
     wpilib.run(Robot)
