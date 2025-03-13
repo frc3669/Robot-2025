@@ -48,7 +48,7 @@ class Robot(commands2.TimedCommandRobot):
 
     def teleopPeriodic(self):
         if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
-            Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.coralHandler.skew)
+            Swerve.driveTeleop(self.controller, self.controller.getRawButton(1), self.controller.getRawButton(2))
     
     def autonomousInit(self) -> None:
         self.autoSelected = self.chooser.getSelected()

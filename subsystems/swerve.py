@@ -16,15 +16,15 @@ class Swerve(commands2.Subsystem):
     startingAngle = 0
     heading = 0
     trajectory = None
-    sample_index = 0
+    possible_reef_angles = [x*cmath.pi/180 for x in range(360, 60)]
+    possible_feeder_station_angles = [2.1995556168958954, -2.1995556168958954]
     
     @staticmethod
     def simulationPeriodic():
-        # This method will be called once per scheduler run during simulation
         pass
 
     @staticmethod
-    def driveTeleop(controller: Joystick, autoAlignEnabled = False, skew = 0):
+    def driveTeleop(controller: Joystick, reefAlignEnabled = False, feederStationAlignEnabled = False):
         velocity = 0
         angular_velocity = 0
         if controller.getName() == "Controller (Xbox One For Windows)":
@@ -37,9 +37,6 @@ class Swerve(commands2.Subsystem):
             angular_velocity = controller.getRawAxis(2)
             if controller.getRawButton(4):
                 Swerve.gyro.set_yaw(0)
-        if autoAlignEnabled:
-            angular_velocity -= skew * constants.swerve_autoalign_P
-
         # apply smooth deadband
         dB = 0.03
         if abs(velocity) > dB:
@@ -50,11 +47,16 @@ class Swerve(commands2.Subsystem):
             angular_velocity *= (1 - dB/abs(angular_velocity))/(1 - dB)
         else:
             angular_velocity = 0
+        # angle the robot to the closest face of the reef
+        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
+        if reefAlignEnabled:
+            angular_velocity += Swerve.getReefAlignmentError() * constants.swerve_autoalign_P
+        elif feederStationAlignEnabled:
+            angular_velocity += Swerve.getFeederStationAlignmentError() * constants.swerve_autoalign_P
         # scale the velocities to meters per second
         velocity *= constants.max_m_per_sec
         angular_velocity *= constants.max_m_per_sec
         # find the robot oriented velocity
-        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
         robot_velocity = velocity * cmath.rect(1, -Swerve.heading)
         # find the fastest module speed
         highest = constants.max_m_per_sec
@@ -177,6 +179,20 @@ class Swerve(commands2.Subsystem):
                 lambda x : Swerve.simpleDrive(0),
                 lambda: not Swerve.poleSensor.get(),
                 Swerve)
+    
+    def getReefAlignmentError() -> float:
+        for angle in Swerve.possible_reef_angles:
+            error = mf.get_wrapped(angle - Swerve.heading)
+            if abs(error) <= cmath.pi/6:
+                return error
+        return 0
+    
+    def getFeederStationAlignmentError() -> float:
+        error1 = mf.get_wrapped(Swerve.possible_feeder_station_angles[0] - Swerve.heading)
+        error2 = mf.get_wrapped(Swerve.possible_feeder_station_angles[1] - Swerve.heading)
+        if abs(error1) < abs(error2):
+            return error1
+        return error2
     
     def resetPoseCmd(new_position: complex, new_angle: float) -> commands2.Command:
             return commands2.InstantCommand (
