@@ -16,8 +16,9 @@ class Swerve(commands2.Subsystem):
     startingAngle = 0
     heading = 0
     trajectory = None
-    possible_reef_angles = [x*cmath.pi/180 for x in range(360, 60)]
+    possible_reef_angles = [x*cmath.pi/180 for x in range(0, 360, 60)]
     possible_feeder_station_angles = [2.1995556168958954, -2.1995556168958954]
+    print(possible_reef_angles)
     
     @staticmethod
     def simulationPeriodic():
