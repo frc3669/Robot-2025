@@ -168,16 +168,13 @@ class Swerve(commands2.Subsystem):
             module.brake()
 
     def driveRightToPole() -> commands2.Command:
-        return commands2.cmd.race(
-            commands2.FunctionalCommand (
-                lambda: Swerve.simpleDrive(0-0.3j),
-                lambda: Swerve.simpleDrive(0-0.3j),
-                lambda x : Swerve.simpleDrive(0),
-                lambda: not Swerve.poleSensor.get(),
-                Swerve),
-            commands2.WaitCommand(2.5)
-        )
-    
+        return commands2.FunctionalCommand (
+            lambda: Swerve.simpleDrive(0-0.3j),
+            lambda: Swerve.simpleDrive(0-0.3j),
+            lambda x : Swerve.simpleDrive(0),
+            lambda: not Swerve.poleSensor.get(),
+            Swerve)
+
     def driveLeftToPole() -> commands2.Command:
             return commands2.FunctionalCommand (
                 lambda: Swerve.simpleDrive(0+0.3j),
@@ -237,7 +234,6 @@ class Swerve(commands2.Subsystem):
             module.reset_encoders()
         Swerve.position = new_position
         Swerve.startingAngle = new_angle
-
     
     @staticmethod
     def getRotationRate():
