@@ -6,7 +6,6 @@ import constants
 class CoralHandler(commands2.Subsystem):
     def __init__(self, controller: interfaces.GenericHID, cmd_controller: commands2.button.CommandGenericHID):
         self.canr0 = hardware.CANrange(9, "CTREdevices")
-        self.canr1 = hardware.CANrange(10, "CTREdevices")
         self.intakeSensor = DigitalInput(0)
         self.algaeIntakeSensor = DigitalInput(2)
         self.elevator_motor = hardware.TalonFX(41, "CTREdevices")
@@ -188,13 +187,10 @@ class CoralHandler(commands2.Subsystem):
     def periodic(self):
         if DriverStation.isTeleopEnabled():
             self.teleopPeriodic()
-        SmartDashboard.putNumber("skew", self.skew)
-        SmartDashboard.putNumber("distance", self.average_distance)
-        SmartDashboard.putNumber("left_dist", self.left_distance)
-        SmartDashboard.putNumber("right_dist", self.right_distance)
+        SmartDashboard.putNumber("distance", self.distance)
         SmartDashboard.putBoolean("coral detected", not self.intakeSensor.get())
         SmartDashboard.putBoolean("algae digital", self.algaeIntakeSensor.get())
-        self.updateRangeAverages()
+        self.updateRangeAverage()
 
     def register(self):
         return super().register()
@@ -271,32 +267,22 @@ class CoralHandler(commands2.Subsystem):
 
     def initMovingAvg(self):
         self._i_range = 0
-        self._past_left_range_values = [0 for _ in range(constants.run_ave_max_index)]
-        self._past_right_range_values = [0 for _ in range(constants.run_ave_max_index)]
-        self.run_ave_difference = 0
-        self.left_distance = 0
-        self.right_distance = 0
-        self.skew = 0
-        self.average_distance = 0
+        self._past_distance_values = [0 for _ in range(constants.run_ave_max_index)]
+        self.distance = 0
 
     def initMiniKrakens(self):
         self.coralInitialAngle = self.coral_angle_motor.get_position().value_as_double
         self.algaeInitialAngle = self.algae_angle_motor.get_position().value_as_double
 
-    def updateRangeAverages(self):
+    def updateRangeAverage(self):
         """
         get left and right CANRange distances
         and update their running averages
         """
         # add new values
-        self._past_left_range_values[self._i_range] = self.canr0.get_distance().value_as_double
-        self._past_right_range_values[self._i_range] = self.canr1.get_distance().value_as_double
+        self._past_distance_values[self._i_range] = self.canr0.get_distance().value_as_double
         # average
-        self.left_distance = sum(self._past_left_range_values)/constants.run_ave_max_index
-        self.right_distance = sum(self._past_right_range_values)/constants.run_ave_max_index
-        # calculte skew and distance from reef
-        self.skew = self.left_distance - self.right_distance
-        self.average_distance = (self.left_distance + self.right_distance) / 2
+        self.distance = sum(self._past_distance_values)/constants.run_ave_max_index
         # at end of function, increment index. Loop at max index
         self._i_range += 1
         if self._i_range == constants.run_ave_max_index:
