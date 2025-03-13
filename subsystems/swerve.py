@@ -50,7 +50,7 @@ class Swerve(commands2.Subsystem):
         else:
             angular_velocity = 0
         # angle the robot to the closest face of the reef
-        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
+        Swerve.heading = Swerve.gyro.get_yaw(refresh=False).value_as_double*cmath.tau/360 + Swerve.startingAngle
         if reefAlignEnabled:
             angular_velocity += Swerve.getReefAlignmentError() * constants.swerve_autoalign_P
         elif feederStationAlignEnabled:
@@ -124,7 +124,7 @@ class Swerve(commands2.Subsystem):
 
     @staticmethod  
     def moveToNextSample():
-        Swerve.heading = Swerve.gyro.get_yaw().value_as_double*cmath.tau/360 + Swerve.startingAngle
+        Swerve.heading = Swerve.gyro.get_yaw(refresh=False).value_as_double*cmath.tau/360 + Swerve.startingAngle
         # find the latest sample index
         if not Swerve.auto_timer.hasElapsed(Swerve.trajectory.get_total_time()):
             Swerve.calculateOdometry()

@@ -37,19 +37,19 @@ class SwerveModule(commands2.Subsystem):
         self.moduleID = moduleID
 
     def odometryCalc(self):
-        self.angle = self.angle_encoder.get_absolute_position().value_as_double * cmath.tau
+        self.angle = self.angle_encoder.get_absolute_position(refresh=False).value_as_double * cmath.tau
         SmartDashboard.putNumber("wheel_ang_" + str(self.moduleID), self.angle / cmath.tau)
-        motor_position = self.drive_motor.get_position().value_as_double
+        motor_position = self.drive_motor.get_position(refresh=False).value_as_double
         motor_position_change = motor_position - self.motor_position_old
         self.motor_position_old = motor_position
         self.position_change = cmath.rect(motor_position_change / constants.motor_turns_per_m, self.angle)
-        self.module_velocity = cmath.rect(self.drive_motor.get_velocity().value_as_double / constants.motor_turns_per_m, self.angle)
+        self.module_velocity = cmath.rect(self.drive_motor.get_velocity(refresh=False).value_as_double / constants.motor_turns_per_m, self.angle)
     
     def set_velocity(self, robot_velocity: complex = complex(), angular_velocity: float = 0, robot_accel: complex = complex(), angular_accel: float = 0):
         velocity = self.find_module_vector(robot_velocity, angular_velocity)
         accel_current = self.find_module_vector(robot_accel, angular_accel)*constants.current_to_accel_ratio
         wheel_speed = abs(velocity)
-        self.angle = self.angle_encoder.get_absolute_position().value_as_double*cmath.tau
+        self.angle = self.angle_encoder.get_absolute_position(refresh=False).value_as_double*cmath.tau
         error = mf.get_wrapped(cmath.phase(velocity) - self.angle)
         if wheel_speed < 0.008:
             error = 0
@@ -60,7 +60,7 @@ class SwerveModule(commands2.Subsystem):
         # use torque/velocity to set the drive motor velocity
         wheel_accel_current = mf.get_projection_size(accel_current, cmath.rect(1, self.angle))
         self.drive_motor.set_control(self.velocity_ctrl.with_velocity(wheel_speed*constants.motor_turns_per_m).with_feed_forward(wheel_accel_current))
-        SmartDashboard.putNumber("wheel_vel_" + str(self.moduleID), self.drive_motor.get_velocity().value_as_double)
+        SmartDashboard.putNumber("wheel_vel_" + str(self.moduleID), self.drive_motor.get_velocity(refresh=False).value_as_double)
         self.odometryCalc()
 
     
@@ -69,12 +69,12 @@ class SwerveModule(commands2.Subsystem):
         self.steering_motor.set_control(controls.StaticBrake())
 
     def accelTest(self, torque_current: float = 0):
-        self.angle = self.angle_encoder.get_absolute_position().value_as_double*cmath.tau
+        self.angle = self.angle_encoder.get_absolute_position(refresh=False).value_as_double*cmath.tau
         error = mf.get_wrapped(cmath.pi/2 - self.angle)
         self.steering_motor.set_control(controls.DutyCycleOut(error/cmath.pi))
         # use torque/velocity to set the drive motor velocity
         self.drive_motor.set_control(controls.TorqueCurrentFOC(torque_current))
-        SmartDashboard.putNumber("wheel_vel_" + str(self.moduleID), self.drive_motor.get_velocity().value_as_double)
+        SmartDashboard.putNumber("wheel_vel_" + str(self.moduleID), self.drive_motor.get_velocity(refresh=False).value_as_double)
         
     def find_module_vector(self, robot_vector, angular_rate):
         return robot_vector + self.turn_vector*angular_rate
