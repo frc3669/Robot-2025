@@ -176,12 +176,12 @@ class Swerve(commands2.Subsystem):
             Swerve)
 
     def driveLeftToPole() -> commands2.Command:
-            return commands2.FunctionalCommand (
-                lambda: Swerve.simpleDrive(0+0.3j),
-                lambda: Swerve.simpleDrive(0+0.3j),
-                lambda x : Swerve.simpleDrive(0),
-                lambda: not Swerve.poleSensor.get(),
-                Swerve)
+        return commands2.FunctionalCommand (
+            lambda: Swerve.simpleDrive(0+0.3j),
+            lambda: Swerve.simpleDrive(0+0.3j),
+            lambda x : Swerve.simpleDrive(0),
+            lambda: not Swerve.poleSensor.get(),
+            Swerve)
     
     def getReefAlignmentError() -> float:
         for angle in Swerve.possible_reef_angles:
