@@ -162,24 +162,24 @@ class CoralHandler(commands2.Subsystem):
         )
 
     def getHeightReached(self, position) -> bool:
-        return abs(-self.elevator_motor.get_position(refresh=False).value_as_double/constants.elevator_in_to_rotations - position) < 0.5
+        return abs(-self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations - position) < 0.5
     
     def getCoralAngleReached(self, angle) -> bool:
-        current_angle = (self.coralInitialAngle-self.coral_angle_motor.get_position(refresh=False).value_as_double)*360/constants.angle_gear_ratio
+        current_angle = (self.coralInitialAngle-self.coral_angle_motor.get_position().value_as_double)*360/constants.angle_gear_ratio
         return abs(current_angle - angle) < 5
     
     def getAlgaeAngleReached(self, angle) -> bool:
-        current_angle = (-self.algaeInitialAngle+self.algae_angle_motor.get_position(refresh=False).value_as_double)*360/constants.algae_angle_gear_ratio
+        current_angle = (-self.algaeInitialAngle+self.algae_angle_motor.get_position().value_as_double)*360/constants.algae_angle_gear_ratio
         return abs(current_angle - angle) < 5
     
     def getAlgaeAngle(self) -> float:
-        return (-self.algaeInitialAngle+self.algae_angle_motor.get_position(refresh=False).value_as_double)*360/constants.algae_angle_gear_ratio
+        return (-self.algaeInitialAngle+self.algae_angle_motor.get_position().value_as_double)*360/constants.algae_angle_gear_ratio
     
     def getCoralAngle(self) -> float:
-        return (self.coralInitialAngle-self.coral_angle_motor.get_position(refresh=False).value_as_double)*360/constants.angle_gear_ratio
+        return (self.coralInitialAngle-self.coral_angle_motor.get_position().value_as_double)*360/constants.angle_gear_ratio
 
     def getHeight(self) -> float:
-        return -self.elevator_motor.get_position(refresh=False).value_as_double/constants.elevator_in_to_rotations
+        return -self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations
 
     def teleopPeriodic(self):
         pass
@@ -271,8 +271,8 @@ class CoralHandler(commands2.Subsystem):
         self.distance = 0
 
     def initMiniKrakens(self):
-        self.coralInitialAngle = self.coral_angle_motor.get_position(refresh=False).value_as_double
-        self.algaeInitialAngle = self.algae_angle_motor.get_position(refresh=False).value_as_double
+        self.coralInitialAngle = self.coral_angle_motor.get_position().value_as_double
+        self.algaeInitialAngle = self.algae_angle_motor.get_position().value_as_double
 
     def updateRangeAverage(self):
         """
@@ -280,7 +280,7 @@ class CoralHandler(commands2.Subsystem):
         and update their running averages
         """
         # add new values
-        self._past_distance_values[self._i_range] = self.canr0.get_distance(refresh=False).value_as_double
+        self._past_distance_values[self._i_range] = self.canr0.get_distance().value_as_double
         # average
         self.distance = sum(self._past_distance_values)/constants.run_ave_max_index
         # at end of function, increment index. Loop at max index
