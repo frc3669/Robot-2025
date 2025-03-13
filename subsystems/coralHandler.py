@@ -81,14 +81,14 @@ class CoralHandler(commands2.Subsystem):
     def intakeAlgaeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
             self.setHeightAndAnglesCommand(0, 0, 170),
-            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.25), self),
+            commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.5), self),
             commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
             commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
         )
     
     def intakeL2_5(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(15, 0, 110),
+            self.setHeightAndAnglesCommand(12, 0, 110),
             commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(0.5), self),
             commands2.WaitUntilCommand(lambda: not self.algaeIntakeSensor.get()),
             commands2.InstantCommand(lambda: self.brakeAlgaeIntake(), self)
@@ -154,7 +154,7 @@ class CoralHandler(commands2.Subsystem):
 
     def scoreProcessorCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(0, 0, 140),
+            self.setHeightAndAnglesCommand(0, 0, 125),
             commands2.WaitUntilCommand(lambda: self.controller.getRawButton(8)),
             commands2.InstantCommand(lambda: self.setAlgaeIntakeSpeed(-0.4), self),
             commands2.WaitCommand(0.75),
