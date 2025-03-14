@@ -209,6 +209,7 @@ class CoralHandler(commands2.Subsystem):
         self.intakeL2_5Trigger = self.cmd_controller.button(4).onTrue(self.intakeL2_5())
         self.scoreBargeTrigger = self.cmd_controller.button(1).onTrue(self.scoreBargeCommand())
         self.scoreProcessorTrigger = self.cmd_controller.button(2).onTrue(self.scoreProcessorCommand())
+        self.prepareForClimbTrigger = self.cmd_controller.button(7).onTrue(self.setHeightAndAnglesCommand(0,0,90))
 
     def initMotorConfigs(self):
         # coral angle motor configuration 

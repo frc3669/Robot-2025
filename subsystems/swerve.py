@@ -31,7 +31,7 @@ class Swerve(commands2.Subsystem):
         dB = 0.03
         if controller.getName() == "Controller (Xbox One For Windows)":
             dB = 0.05
-            velocity = complex(-controller.getRawAxis(1), -controller.getRawAxis(0))
+            velocity = (0.5+controller.getRawAxis(3)*0.5)*complex(-controller.getRawAxis(1), -controller.getRawAxis(0))
             angular_velocity = -controller.getRawAxis(4)
             if controller.getRawButton(4):
                 Swerve.gyro.set_yaw(0)
