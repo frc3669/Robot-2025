@@ -78,6 +78,15 @@ class CoralHandler(commands2.Subsystem):
             commands2.InstantCommand(lambda: self.brakeIntake(), self)
         )
 
+    def coralReset(self) -> commands2.Command:
+        returns commands2.cmd.sequence(
+            commands2.InstantCommand(lambda: self.setIntakeSpeed(-0.15), self),
+            commands2.WaitUntilCommand(lambda: self.intakeSensor.get()),
+            commands2.InstantCommand(lambda: self.setIntakeSpeed(0.1), self),
+            commands2.WaitUntilCommand(lambda: not self.intakeSensor.get()),
+            commands2.InstantCommand(lambda: self.brakeIntake(), self)
+        )
+
     def intakeAlgaeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
             self.setHeightAndAnglesCommand(0, 0, 170),
@@ -199,7 +208,8 @@ class CoralHandler(commands2.Subsystem):
         self.feederStationTrigger = self.cmd_controller.button(9).onTrue(self.intakeCommand())
         self.homeTrigger = self.cmd_controller.button(17).onTrue(self.homeCommand())
         self.algaeHomeTrigger = self.cmd_controller.button(6).onTrue(self.homeCommand())
-        self.l1_coral_trigger = self.cmd_controller.button(16).onTrue(self.goL1Command())
+        # self.l1_coral_trigger = self.cmd_controller.button(16).onTrue(self.goL1Command())
+        self.l1_coral_trigger = self.cmd_controller.button(16).onTrue(self.resetCoral())
         self.l2_coral_trigger = self.cmd_controller.button(15).onTrue(self.goL2Command())
         self.l3_coral_trigger = self.cmd_controller.button(14).onTrue(self.goL3Command())
         self.l4_coral_trigger = self.cmd_controller.button(13).onTrue(self.goL4Command())
