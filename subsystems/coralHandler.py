@@ -148,7 +148,7 @@ class CoralHandler(commands2.Subsystem):
     def ejectCoral(self) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.InstantCommand(lambda: self.setEjectCoralSpeed(), self),
-            commands2.WaitCommand(1),
+            commands2.WaitCommand(0.2),
             commands2.InstantCommand(lambda: self.brakeIntake(), self)
         )
 
