@@ -22,10 +22,16 @@ class Robot(commands2.TimedCommandRobot):
         self.centerAuto = "Center Auto"
         self.leftAuto = "Left Auto"
         self.rightAuto = "Right Auto"
+        self.centerAutoAlgae = "Center Auto w/algae"
+        self.leftAutoAlgae = "Left Auto w/algae"
+        self.rightAutoAlgae = "Right Auto w/algae"
         self.chooser.setDefaultOption("Calibrate Odometry", self.calibrationAuto)
-        self.chooser.addOption("Center Auto", self.centerAuto)
-        self.chooser.addOption("Left Auto", self.leftAuto)
-        self.chooser.addOption("Right Auto", self.rightAuto)
+        self.chooser.addOption("Center", self.centerAuto)
+        self.chooser.addOption("Left", self.leftAuto)
+        self.chooser.addOption("Right", self.rightAuto)
+        self.chooser.addOption("Center w/algae", self.centerAutoAlgae)
+        self.chooser.addOption("Left w/algae", self.rightAutoAlgae)
+        self.chooser.addOption("Right w/algae", self.leftAutoAlgae)
         SmartDashboard.putData("Auto choices", self.chooser)
         # load Choreo paths
         self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
@@ -35,6 +41,12 @@ class Robot(commands2.TimedCommandRobot):
         self.rightPath1 = choreo.load_swerve_trajectory("Right Path 1")
         self.rightPath2 = choreo.load_swerve_trajectory("Right Path 2")
         self.odometryTestPath = choreo.load_swerve_trajectory("Odometry Test")
+        self.centerAlgae1 = choreo.load_swerve_trajectory("Center Algae 1")
+        self.centerAlgae2 = choreo.load_swerve_trajectory("Center Algae 2")
+        self.leftAlgae1 = choreo.load_swerve_trajectory("Left Algae 1")
+        self.leftAlgae2 = choreo.load_swerve_trajectory("Left Algae 2")
+        self.rightAlgae1 = choreo.load_swerve_trajectory("Right Algae 1")
+        self.rightAlgae2 = choreo.load_swerve_trajectory("Right Algae 2")
         # create commands for auto scoring
         self.scoreRightCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveRightToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
         self.scoreLeftCmd = commands2.cmd.race(commands2.cmd.sequence(Swerve.driveLeftToPole(), self.coralHandler.ejectCoral()), commands2.WaitCommand(3))
@@ -94,6 +106,57 @@ class Robot(commands2.TimedCommandRobot):
                     self.scoreRightCmd,
                     Swerve.resetPositionCmd(complex(self.rightPath2.get_initial_pose().x, self.rightPath2.get_initial_pose().y)),
                     Swerve.followTrajectory(self.rightPath2)
+                ).schedule()
+            case self.centerAutoAlgae:
+                initial_pose = self.centerPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.centerPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreRightCmd,
+                    Swerve.resetPositionCmd(complex(self.centerPath2.get_initial_pose().x, self.centerPath2.get_initial_pose().y)),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.centerPath2),
+                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.centerAlgae1),
+                        self.coralHandler.intakeL2_5()),
+                    Swerve.followTrajectory(self.centerAlgae2)
+                ).schedule()
+            case self.leftAutoAlgae:
+                initial_pose = self.leftPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.leftPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreLeftCmd,
+                    Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().y)),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.leftPath2),
+                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.leftAlgae1),
+                        self.coralHandler.intakeL3_5()),
+                    Swerve.followTrajectory(self.leftAlgae2)
+                ).schedule()
+            case self.rightAutoAlgae:
+                initial_pose = self.rightPath1.get_initial_pose()
+                commands2.cmd.sequence(
+                    Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.rightPath1),
+                        self.coralHandler.goL4Command()),
+                    self.scoreRightCmd,
+                    Swerve.resetPositionCmd(complex(self.rightPath2.get_initial_pose().x, self.rightPath2.get_initial_pose().y)),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.rightPath2),
+                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
+                    commands2.cmd.parallel(
+                        Swerve.followTrajectory(self.rightAlgae1),
+                        self.coralHandler.intakeL3_5()),
+                    Swerve.followTrajectory(self.rightAlgae2)
                 ).schedule()
 
 
