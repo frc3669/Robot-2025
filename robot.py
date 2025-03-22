@@ -18,20 +18,20 @@ class Robot(commands2.TimedCommandRobot):
         Swerve.add_module(SwerveModule(4, 1, -1))
         # add autonomous selector to Smartdashboard
         self.chooser = wpilib.SendableChooser()
-        self.calibrationAuto = "Calibration Auto"
-        self.centerAuto = "Center Auto"
-        self.leftAuto = "Left Auto"
-        self.rightAuto = "Right Auto"
-        self.centerAutoAlgae = "Center Auto w/algae"
-        self.leftAutoAlgae = "Left Auto w/algae"
-        self.rightAutoAlgae = "Right Auto w/algae"
+        self.calibrationAuto = "Calibration"
+        self.centerAuto = "Center"
+        self.leftAuto = "Left"
+        self.rightAuto = "Right"
+        self.centerAutoAlgae = "Center Algae"
+        self.leftAutoAlgae = "Left Algae"
+        self.rightAutoAlgae = "Right Algae"
         self.chooser.setDefaultOption("Calibrate Odometry", self.calibrationAuto)
         self.chooser.addOption("Center", self.centerAuto)
         self.chooser.addOption("Left", self.leftAuto)
         self.chooser.addOption("Right", self.rightAuto)
-        self.chooser.addOption("Center w/algae", self.centerAutoAlgae)
-        self.chooser.addOption("Left w/algae", self.rightAutoAlgae)
-        self.chooser.addOption("Right w/algae", self.leftAutoAlgae)
+        self.chooser.addOption("Center Algae", self.centerAutoAlgae)
+        self.chooser.addOption("Left Algae", self.rightAutoAlgae)
+        self.chooser.addOption("Right Algae", self.leftAutoAlgae)
         SmartDashboard.putData("Auto choices", self.chooser)
         # load Choreo paths
         self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
