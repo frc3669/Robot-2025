@@ -239,11 +239,11 @@ class CoralHandler(commands2.Subsystem):
         # elevotor motor configs
         elevator_cfg = configs.TalonFXConfiguration()
         elevator_cfg.slot0.k_p = 30
-        elevator_cfg.slot0.k_s = 5
-        elevator_cfg.slot0.k_g = -10
+        elevator_cfg.slot0.k_s = 10
+        elevator_cfg.slot0.k_g = -18
         elevator_cfg.torque_current.peak_forward_torque_current = 70
-        elevator_cfg.torque_current.peak_reverse_torque_current = -70
-        elevator_cfg.motion_magic.motion_magic_acceleration = 50
+        elevator_cfg.torque_current.peak_reverse_torque_current = -90
+        elevator_cfg.motion_magic.motion_magic_acceleration = 80
         elevator_cfg.motion_magic.motion_magic_cruise_velocity = 100
         elevator_cfg.motion_magic.motion_magic_jerk = 300
         # scoring motor configs
