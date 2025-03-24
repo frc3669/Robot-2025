@@ -55,7 +55,12 @@ class Robot(commands2.TimedCommandRobot):
     
     def teleopInit(self):
         DataLogManager.start()
-        self.coralHandler.homeCommand().schedule()
+        if self.autoSelected == self.calibrationAuto or self.autoSelected == self.centerAuto or self.autoSelected == self.leftAuto or self.autoSelected == self.rightAuto:
+            self.coralHandler.homeCommand().schedule()
+        elif self.autoSelected == self.centerAutoAlgae:
+            self.coralHandler.intakeL2_5().schedule()
+        else:
+            self.coralHandler.intakeL3_5().schedule()
         self.coralHandler.brakeIntake()
 
     def teleopPeriodic(self):
@@ -116,13 +121,10 @@ class Robot(commands2.TimedCommandRobot):
                         self.coralHandler.goL4Command()),
                     self.scoreRightCmd,
                     Swerve.resetPositionCmd(complex(self.centerPath2.get_initial_pose().x, self.centerPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.centerPath2),
                     commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.centerPath2),
-                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
-                    commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.centerAlgae1),
-                        self.coralHandler.intakeL2_5()),
-                    Swerve.followTrajectory(self.centerAlgae2)
+                        commands2.cmd.sequence(Swerve.followTrajectory(self.centerAlgae1), Swerve.followTrajectory(self.centerAlgae2)),
+                        self.coralHandler.intakeL2_5())
                 ).schedule()
             case self.leftAutoAlgae:
                 initial_pose = self.leftPath1.get_initial_pose()
@@ -133,13 +135,10 @@ class Robot(commands2.TimedCommandRobot):
                         self.coralHandler.goL4Command()),
                     self.scoreLeftCmd,
                     Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.leftPath2),
                     commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.leftPath2),
-                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
-                    commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.leftAlgae1),
-                        self.coralHandler.intakeL3_5()),
-                    Swerve.followTrajectory(self.leftAlgae2)
+                        commands2.cmd.sequence(Swerve.followTrajectory(self.leftAlgae1), Swerve.followTrajectory(self.leftAlgae2)),
+                        self.coralHandler.intakeL3_5())
                 ).schedule()
             case self.rightAutoAlgae:
                 initial_pose = self.rightPath1.get_initial_pose()
@@ -150,13 +149,10 @@ class Robot(commands2.TimedCommandRobot):
                         self.coralHandler.goL4Command()),
                     self.scoreRightCmd,
                     Swerve.resetPositionCmd(complex(self.rightPath2.get_initial_pose().x, self.rightPath2.get_initial_pose().y)),
+                    Swerve.followTrajectory(self.rightPath2),
                     commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.rightPath2),
-                        commands2.cmd.sequence(commands2.WaitCommand(1), self.coralHandler.homeCommand())),
-                    commands2.cmd.parallel(
-                        Swerve.followTrajectory(self.rightAlgae1),
-                        self.coralHandler.intakeL3_5()),
-                    Swerve.followTrajectory(self.rightAlgae2)
+                        commands2.cmd.sequence(Swerve.followTrajectory(self.rightAlgae1), Swerve.followTrajectory(self.rightAlgae2)),
+                        self.coralHandler.intakeL3_5())
                 ).schedule()
 
 
