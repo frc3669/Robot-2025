@@ -66,7 +66,7 @@ class CoralHandler(commands2.Subsystem):
 
     def intakeCommand(self) -> commands2.Command:
         return commands2.cmd.sequence(
-            self.setHeightAndAnglesCommand(11, 32, 0),
+            self.setHeightAndAnglesCommand(11, 33.65, 0),
             commands2.InstantCommand(lambda: self.setIntakeSpeed(0.25), self),
             commands2.WaitUntilCommand(lambda: not self.intakeSensor.get()),
             commands2.InstantCommand(lambda: self.setIntakeSpeed(-0.1), self),
@@ -128,13 +128,13 @@ class CoralHandler(commands2.Subsystem):
         )
 
     def goL4Command(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(44, 89, 0)
+        return self.setHeightAndAnglesCommand(44, 90.65, 0)
 
     def goL3Command(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(6, 150, 0)
+        return self.setHeightAndAnglesCommand(6, 151.65, 0)
 
     def goL2Command(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(5, 0, 0)
+        return self.setHeightAndAnglesCommand(5, 1.65, 0)
 
     def goL1Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
