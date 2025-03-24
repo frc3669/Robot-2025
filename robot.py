@@ -54,6 +54,7 @@ class Robot(commands2.TimedCommandRobot):
         self.scoreLeftTrigger = self.command_keypad.button(11).onTrue(self.scoreLeftCmd)
     
     def teleopInit(self):
+        self.autoSelected = self.chooser.getSelected()
         if self.autoSelected == self.calibrationAuto or self.autoSelected == self.centerAuto or self.autoSelected == self.leftAuto or self.autoSelected == self.rightAuto:
             self.coralHandler.homeCommand().schedule()
         elif self.autoSelected == self.centerAutoAlgae:
