@@ -1,5 +1,5 @@
 import wpilib, commands2, choreo
-from wpilib import DataLogManager, SmartDashboard
+from wpilib import SmartDashboard
 import wpilib.interfaces
 from subsystems.swerve import Swerve, SwerveModule
 from subsystems.coralHandler import CoralHandler
@@ -54,7 +54,6 @@ class Robot(commands2.TimedCommandRobot):
         self.scoreLeftTrigger = self.command_keypad.button(11).onTrue(self.scoreLeftCmd)
     
     def teleopInit(self):
-        DataLogManager.start()
         if self.autoSelected == self.calibrationAuto or self.autoSelected == self.centerAuto or self.autoSelected == self.leftAuto or self.autoSelected == self.rightAuto:
             self.coralHandler.homeCommand().schedule()
         elif self.autoSelected == self.centerAutoAlgae:

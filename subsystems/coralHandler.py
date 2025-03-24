@@ -1,5 +1,5 @@
 import cmath, commands2
-from wpilib import SmartDashboard, DigitalInput, DriverStation, interfaces
+from wpilib import SmartDashboard, DigitalInput, interfaces
 from phoenix6 import hardware, controls, configs, signals, StatusCode
 import constants
 
@@ -187,15 +187,6 @@ class CoralHandler(commands2.Subsystem):
 
     def getHeight(self) -> float:
         return -self.elevator_motor.get_position().value_as_double/constants.elevator_in_to_rotations
-
-    def teleopPeriodic(self):
-        pass
-
-    def periodic(self):
-        if DriverStation.isTeleopEnabled():
-            self.teleopPeriodic()
-        SmartDashboard.putBoolean("coral detected", not self.intakeSensor.get())
-        SmartDashboard.putBoolean("algae digital", self.algaeIntakeSensor.get())
 
     def register(self):
         return super().register()

@@ -1,5 +1,5 @@
 import cmath, commands2, choreo
-from wpilib import Timer, SmartDashboard, Joystick, DriverStation, DigitalInput
+from wpilib import Timer, SmartDashboard, Joystick, DigitalInput
 from phoenix6 import hardware
 from subsystems.swerveModule import SwerveModule, constants, mf
 from typing import final
@@ -102,7 +102,6 @@ class Swerve(commands2.Subsystem):
         # drive the modules
         for module in Swerve.modules:
             module.set_velocity(robot_slew_velocity, Swerve.slew_angular_velocity, robot_accel, angular_accel)
-        Swerve.calculateOdometry()
 
     @staticmethod
     def testAccel(controller: Joystick, test_value):
