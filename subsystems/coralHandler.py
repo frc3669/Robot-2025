@@ -53,7 +53,7 @@ class CoralHandler(commands2.Subsystem):
         if self.getCoralAngle() > 60:
             self.scoring_motor.set_control(controls.DutyCycleOut(0.25))
         elif self.getHeightReached(5):
-            self.scoring_motor.set_control(controls.DutyCycleOut(-0.5))
+            self.scoring_motor.set_control(controls.DutyCycleOut(-0.70))
         else:
             self.scoring_motor.set_control(controls.DutyCycleOut(-0.25))
 
@@ -128,13 +128,13 @@ class CoralHandler(commands2.Subsystem):
         )
 
     def goL4Command(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(44, 90.65, 0)
+        return self.setHeightAndAnglesCommand(44, 98.65, 0)
 
     def goL3Command(self) -> commands2.Command:
         return self.setHeightAndAnglesCommand(6, 151.65, 0)
 
     def goL2Command(self) -> commands2.Command:
-        return self.setHeightAndAnglesCommand(5, 1.65, 0)
+        return self.setHeightAndAnglesCommand(5, 3.65, 0)
 
     def goL1Command(self) -> commands2.Command:
         return commands2.cmd.sequence(
@@ -146,7 +146,7 @@ class CoralHandler(commands2.Subsystem):
     def ejectCoral(self) -> commands2.Command:
         return commands2.cmd.sequence(
             commands2.InstantCommand(lambda: self.setEjectCoralSpeed(), self),
-            commands2.WaitCommand(0.2),
+            commands2.WaitCommand(0.25),
             commands2.InstantCommand(lambda: self.brakeIntake(), self)
         )
 
