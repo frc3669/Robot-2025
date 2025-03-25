@@ -30,8 +30,8 @@ class Robot(commands2.TimedCommandRobot):
         self.chooser.addOption("Left", self.leftAuto)
         self.chooser.addOption("Right", self.rightAuto)
         self.chooser.addOption("Center Algae", self.centerAutoAlgae)
-        self.chooser.addOption("Left Algae", self.rightAutoAlgae)
-        self.chooser.addOption("Right Algae", self.leftAutoAlgae)
+        self.chooser.addOption("Left Algae", self.leftAutoAlgae)
+        self.chooser.addOption("Right Algae", self.rightAutoAlgae)
         SmartDashboard.putData("Auto choices", self.chooser)
         # load Choreo paths
         self.leftPath1 = choreo.load_swerve_trajectory("Left Path 1")
