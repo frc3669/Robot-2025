@@ -114,46 +114,63 @@ class Robot(commands2.TimedCommandRobot):
                 ).schedule()
             case self.centerAutoAlgae:
                 initial_pose = self.centerPath1.get_initial_pose()
-                commands2.cmd.sequence(
+                # Split into two sequences for better control
+                coral_sequence = commands2.cmd.sequence(
                     Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
                     commands2.cmd.parallel(
                         Swerve.followTrajectory(self.centerPath1),
                         self.coralHandler.goL4Command()),
                     self.scoreRightCmd,
                     Swerve.resetPositionCmd(complex(self.centerPath2.get_initial_pose().x, self.centerPath2.get_initial_pose().y)),
-                    Swerve.followTrajectory(self.centerPath2),
-                    commands2.cmd.parallel(
-                        commands2.cmd.sequence(Swerve.followTrajectory(self.centerAlgae1), Swerve.followTrajectory(self.centerAlgae2)),
-                        self.coralHandler.intakeL2_5())
-                ).schedule()
+                    Swerve.followTrajectory(self.centerPath2))
+                
+                algae_sequence = commands2.cmd.parallel(
+                    commands2.cmd.sequence(
+                        Swerve.followTrajectory(self.centerAlgae1),
+                        Swerve.followTrajectory(self.centerAlgae2)),
+                    self.coralHandler.intakeL2_5())
+                
+                commands2.cmd.sequence(coral_sequence, algae_sequence).schedule()
+                
             case self.leftAutoAlgae:
                 initial_pose = self.leftPath1.get_initial_pose()
-                commands2.cmd.sequence(
+                # Split into two sequences for better control
+                coral_sequence = commands2.cmd.sequence(
                     Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
                     commands2.cmd.parallel(
                         Swerve.followTrajectory(self.leftPath1),
                         self.coralHandler.goL4Command()),
                     self.scoreLeftCmd,
                     Swerve.resetPositionCmd(complex(self.leftPath2.get_initial_pose().x, self.leftPath2.get_initial_pose().y)),
-                    Swerve.followTrajectory(self.leftPath2),
-                    commands2.cmd.parallel(
-                        commands2.cmd.sequence(Swerve.followTrajectory(self.leftAlgae1), Swerve.followTrajectory(self.leftAlgae2)),
-                        self.coralHandler.intakeL3_5())
-                ).schedule()
+                    Swerve.followTrajectory(self.leftPath2))
+                
+                algae_sequence = commands2.cmd.parallel(
+                    commands2.cmd.sequence(
+                        Swerve.followTrajectory(self.leftAlgae1),
+                        Swerve.followTrajectory(self.leftAlgae2)),
+                    self.coralHandler.intakeL3_5())
+                
+                commands2.cmd.sequence(coral_sequence, algae_sequence).schedule()
+                
             case self.rightAutoAlgae:
                 initial_pose = self.rightPath1.get_initial_pose()
-                commands2.cmd.sequence(
+                # Split into two sequences for better control
+                coral_sequence = commands2.cmd.sequence(
                     Swerve.resetPoseCmd(complex(initial_pose.x, initial_pose.y), initial_pose.rotation().radians()),
                     commands2.cmd.parallel(
                         Swerve.followTrajectory(self.rightPath1),
                         self.coralHandler.goL4Command()),
                     self.scoreRightCmd,
                     Swerve.resetPositionCmd(complex(self.rightPath2.get_initial_pose().x, self.rightPath2.get_initial_pose().y)),
-                    Swerve.followTrajectory(self.rightPath2),
-                    commands2.cmd.parallel(
-                        commands2.cmd.sequence(Swerve.followTrajectory(self.rightAlgae1), Swerve.followTrajectory(self.rightAlgae2)),
-                        self.coralHandler.intakeL3_5())
-                ).schedule()
+                    Swerve.followTrajectory(self.rightPath2))
+                
+                algae_sequence = commands2.cmd.parallel(
+                    commands2.cmd.sequence(
+                        Swerve.followTrajectory(self.rightAlgae1),
+                        Swerve.followTrajectory(self.rightAlgae2)),
+                    self.coralHandler.intakeL3_5())
+                
+                commands2.cmd.sequence(coral_sequence, algae_sequence).schedule()
 
 
 if __name__ == "__main__":
