@@ -23,7 +23,7 @@ swerve_heading_P = 2.5
 swerve_autoalign_P = 0.5
 
 #release_intake = -0.25
-#L4_height = 72.5
-#L3_height = 48.5
-#L2_height = 32.5
-#L1_height = 18.5
+#L4_height = 44
+#L3_height = 6
+#L2_height = 5
+#L1_height = 0
