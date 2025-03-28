@@ -31,15 +31,24 @@ class CoralHandler(commands2.Subsystem):
 
     def setHeight(self, height):
         rotations = -height*constants.elevator_in_to_rotations
-        self.elevator_motor.set_control(self.position_velocity.with_position(rotations))
+        for _ in range(0, 5):
+            status = self.elevator_motor.set_control(self.position_velocity.with_position(rotations))
+            if status.is_ok():
+                break
 
     def setCoralAngle(self, angle):
         rotations = self.coralInitialAngle - angle/360*constants.angle_gear_ratio
-        self.coral_angle_motor.set_control(self.position_velocity.with_position(rotations))
+        for _ in range(0, 5):
+            status = self.coral_angle_motor.set_control(self.position_velocity.with_position(rotations))
+            if status.is_ok():
+                break
 
     def setAlgaeAngle(self, angle):
         rotations = self.algaeInitialAngle + angle/360*constants.algae_angle_gear_ratio
-        self.algae_angle_motor.set_control(self.position_velocity.with_position(rotations))
+        for _ in range(0, 5):
+            status = self.algae_angle_motor.set_control(self.position_velocity.with_position(rotations))
+            if status.is_ok():
+                break
 
     def setHeightAndAngles(self, height, coral_angle, algae_angle):
         self.setHeight(height)
