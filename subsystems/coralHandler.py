@@ -123,8 +123,7 @@ class CoralHandler(commands2.Subsystem):
             commands2.InstantCommand(lambda: self.stopEverything(), self),
             commands2.InstantCommand(lambda: self.setHeightAndAngles(0, 15, 0), self),
             commands2.WaitUntilCommand(lambda: self.getHeightReached(0) and self.getAlgaeAngleReached(0) and self.getCoralAngleReached(15)),
-            commands2.InstantCommand(lambda: self.setHeightAndAngles(0, 0, 0), self),
-            commands2.InstantCommand(lambda: self.elevator_motor.set_control(controls.NeutralOut()), self)
+            commands2.InstantCommand(lambda: self.setHeightAndAngles(0, 0, 0), self)
         )
 
     def setHeightAndAnglesCommand(self, height, coral_angle, algae_angle) -> commands2.Command:
@@ -245,7 +244,7 @@ class CoralHandler(commands2.Subsystem):
         elevator_cfg.torque_current.peak_forward_torque_current = 70
         elevator_cfg.torque_current.peak_reverse_torque_current = -90
         elevator_cfg.motion_magic.motion_magic_acceleration = 80
-        elevator_cfg.motion_magic.motion_magic_cruise_velocity = 90
+        elevator_cfg.motion_magic.motion_magic_cruise_velocity = 100
         elevator_cfg.motion_magic.motion_magic_jerk = 300
         # scoring motor configs
         scoring_cfg = configs.TalonFXSConfiguration()
