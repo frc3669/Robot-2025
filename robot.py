@@ -62,7 +62,7 @@ class Robot(commands2.TimedCommandRobot):
         else:
             self.coralHandler.intakeL3_5().schedule()
         self.coralHandler.brakeIntake()
-        self.commands2.CommandScheduler.cancelAll()
+        commands2.CommandScheduler.getInstance().cancelAll()
 
     def teleopPeriodic(self):
         if not self.scoreRightCmd.isScheduled() and not self.scoreLeftCmd.isScheduled():
